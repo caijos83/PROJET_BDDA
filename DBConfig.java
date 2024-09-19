@@ -12,7 +12,6 @@ public class DBConfig {
 	}
 public static DBConfig LoadDBConfig(String fichier_config) throws IOException{
 	StringBuffer sb = new StringBuffer();
-	S
 		return fichier_config;
 	}
 }
