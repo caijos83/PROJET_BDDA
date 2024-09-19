@@ -1,1 +1,18 @@
 
+package projet_SGBD;
+import java.io.*;
+
+public class DBConfig {
+	public String dbpath;
+	DBConfig(String dbpath){
+		this.dbpath=dbpath;
+	}
+	public String getDbath() {
+		return dbpath;
+	}
+public static DBConfig LoadDBConfig(String fichier_config) throws IOException{
+	StringBuffer sb = new StringBuffer();
+	S
+		return fichier_config;
+	}
+}
