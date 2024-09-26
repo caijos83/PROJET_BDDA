@@ -1,17 +1,24 @@
 
 package projet_SGBD;
 import java.io.*;
-//test 
+import java.util.Scanner;
 public class DBConfig {
-	public String dbpath;
+	String dbpath;
+	
 	DBConfig(String dbpath){
 		this.dbpath=dbpath;
 	}
 	public String getDbath() {
 		return dbpath;
 	}
-public static DBConfig LoadDBConfig(String fichier_config) throws IOException{
-	StringBuffer sb = new StringBuffer();
-		return fichier_config;
+public static DBConfig LoadDBConfig(File fichier_config) throws FileNotFoundException{
+	DbConfg dbConfig=null;
+	Scanner myReader = new Scanner(fichier_config);
+	if (myReader.hasNextLine()) {
+		String data = myReader.nextLine();
+		dbConfig=new DBConfig(data);
+	}
+	myReader.close();
+	return dbConfig;
 	}
 }
