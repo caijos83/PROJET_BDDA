@@ -14,13 +14,13 @@ public class DiskManager{
 		this.config = config;
 	}
 	
-	public PageId AllocPage() throws IOException{
+	/*public PageId AllocPage() throws IOException{
 		if(!freePages.isEmpty()) {
 			return freePages.remove(freePages.size() - 1);
 		}else {}
 		
-			
-		}
+	}*/
+	
 	public void ReadPage (PageId pageId, byte[] buff) {
 		if(buff.length < config.getPageSize()) {
 			throw new IllegalArgumentException("La taille du Buffer doit etre au moins la taille de la page");
@@ -39,10 +39,38 @@ public class DiskManager{
 	}
 	
 	public void DeallocPage (PageId pageId) {
-		freePages.add(pageId);
+		freePages.add(pageId);	
+	}
+	
+	public void SaveState() {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter("dbpath/dm.save"))) {
+				for(PageId pageId : freePages) {
+					writer.write(pageId.toString());
+					writer.newLine();
+				}
+		}catch (IOException e) {
+			System.err.println("Erreur de Sauveguarde");
+		}
+	}
+	
+	public void LoadState() {
+		String filepath = config.getDbPath() + "/dm.save";
+		try (BufferedReader br = new BufferedReader(new FileReader(filepath))) {
+				String line;
+				while ((line =  br.readLine()) != null) {
+					String[] parts = line.split(",");
+					if(parts.length == 2) {
+						int fileIndex = Integer.parseInt(parts[0]);
+						int pageIndex = Integer.parseInt(parts[1]);
+						freePages.add(new PageId(fileIndex,pageIndex));
+					}
+					
+				}
+			}catch(IOException e) {
+			System.err.println("Erreur de Chargement");
+		}
 		
 	}
 	
 	
 }
-
