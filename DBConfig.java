@@ -15,7 +15,7 @@ public class DBConfig {
 		this.pagesize=pagesize;
 		this.dm_maxfilesize=dm_maxfilesize;
 	}
-	public String getDbath() {
+	public String getDbPath() {
 		return dbpath;
 	}
 	public int getPageSize() {
