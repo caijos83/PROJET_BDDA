@@ -1,0 +1,48 @@
+package projet_SGBD;
+import java.io.*;
+import java.nio.file.*;
+import java.util.List;
+import java.util.Scanner;
+
+public class DiskManager{
+	private DBConfig config;
+	private List<PageId> freePages;
+	private List<byte[]> files;
+	
+
+	public DiskManager(DBConfig config) {
+		this.config = config;
+	}
+	
+	public PageId AllocPage() throws IOException{
+		if(!freePages.isEmpty()) {
+			return freePages.remove(freePages.size() - 1);
+		}else {}
+		
+			
+		}
+	public void ReadPage (PageId pageId, byte[] buff) {
+		if(buff.length < config.getPageSize()) {
+			throw new IllegalArgumentException("La taille du Buffer doit etre au moins la taille de la page");
+		}
+		int fileIndex = pageId.getFileIdx();
+		int pageIndex = pageId.getPageIdx();
+		int offset = pageIndex * config.getPageSize();
+		System.arraycopy(files.get(fileIndex),offset,buff,0,config.getPageSize());
+	}
+	
+	public void WritePage(PageId pageId, byte[] buff) {
+		int fileIndex = pageId.getFileIdx();
+		int pageIndex = pageId.getPageIdx();
+		int offset = pageIndex * config.getPageSize();
+		System.arraycopy(buff,offset,files.get(fileIndex),0,config.getPageSize());
+	}
+	
+	public void DeallocPage (PageId pageId) {
+		freePages.add(pageId);
+		
+	}
+	
+	
+}
+
