@@ -33,54 +33,9 @@ La classe `DBConfigTest` est une classe de test pour valider les fonctionnalité
 - Tester la création d'une instance de `DBConfig` à partir d'un fichier texte.
 - Gérer et afficher les erreurs si le fichier de configuration n'est pas trouvé ou s'il y a un problème de lecture.
 
-
 **Exemple d'exécution :**
 ```shell
 DB Path: ../DB
 Chemin défini manuellement :
 DB Path: ../DB
 Chemin lu à partir du fichier config.txt :
-
-
-
-## Mise à jour : Gestion de l'espace disque
-
-### 1. `DBConfig.java`
-**Description : **
-La classe DBConfig a été mise à jour pour inclure des paramètres liés à la gestion de l'espace disque dans le SGBD.
-
-**Responsabilités principales :**
-- Stocker le chemin vers le dossier de données du SGBD.
-- Gérer la taille des pages (pagesize) et la taille maximale des fichiers (dm_maxfilesize).
-- Charger ces paramètres à partir d'un fichier texte (config.txt), en plus de les définir manuellement.
-
-**Méthodes mises à jour : **
-- DBConfig(String dbpath, int pagesize, long dm_maxfilesize) : Ce constructeur initialise l'objet DBConfig avec le chemin, la taille des pages, et la taille maximale des fichiers.
-- static DBConfig LoadDBConfig(String filePath) : Cette méthode charge la configuration à partir d'un fichier texte. Elle lit le fichier et retourne une instance de DBConfig avec les valeurs dbpath, pagesize, et dm_maxfilesize.
-- String getDbpath() : Retourne le chemin vers le dossier de données.
-- int getPagesize() : Retourne la taille des pages.
-- long getMaxFilesize() : Retourne la taille maximale des fichiers.
-- void printConfig() : Affiche les détails de la configuration dans la console.
-
-### 2. `DBConfigTest.java`
-**Description : **
-La classe DBConfigTest a été modifiée pour valider les nouveaux paramètres de la configuration de l'espace disque.
-
-
-**Responsabilités principales :**
-- Tester la création manuelle d'une instance de DBConfig avec des valeurs spécifiques pour dbpath, pagesize, et dm_maxfilesize.
-- Tester la création d'une instance de DBConfig à partir d'un fichier config.txt.
-- Gérer et afficher les erreurs de lecture des paramètres si le fichier de configuration est incorrect ou manquant.
-
-
-**Exemple d'exécution :**
-```shell
-Chemin défini manuellement
-DB Path: ../DB
-Page Size: 4096 bytes
-Max File Size: 10485760 bytes
-
-Chemin lu à partir du fichier config.txt
-DB Path: ../DB
-Page Size: 4096 bytes
-Max File Size: 10485760 bytes
