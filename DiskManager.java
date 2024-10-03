@@ -44,9 +44,9 @@ public class DiskManager {
     public void WritePage(PageId pageId, ByteBuffer buff) throws IOException {
         RandomAccessFile file = new RandomAccessFile(config.getDbpath() + "/F" + pageId.getFileIdx() + ".rsdb", "rw");
         file.seek((long) pageId.getPageIdx() * config.getPagesize());
-        byte[] bytes = new byte[config.getPagesize()];
-        buff.get(bytes);
-        file.write(bytes);
+//        byte[] bytes = new byte[config.getPagesize()];
+//        buff.get(bytes);
+        file.write(buff.array());
         file.close();
     }
 

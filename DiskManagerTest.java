@@ -10,13 +10,14 @@ public class DiskManagerTest {
         PageId pageId = dm.AllocPage();
         System.out.println("Page allouée: " + pageId);
 
-        // Test écriture de page
+
         ByteBuffer buff = ByteBuffer.allocate(config.getPagesize());
         buff.put("Hello, World!".getBytes());
+        System.out.println(buff.position() + " " + buff.capacity());
         buff.flip();
         dm.WritePage(pageId, buff);
 
-        // Test lecture de page
+
         ByteBuffer readBuff = ByteBuffer.allocate(config.getPagesize());
         dm.ReadPage(pageId, readBuff);
         readBuff.flip();
