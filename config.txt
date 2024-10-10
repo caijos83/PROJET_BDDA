@@ -1,3 +1,5 @@
 dbpath = ./DB
 pagesize = 4096
 dm_maxfilesize = 10485760
+bm_buffercount = 10
+bm_policy = LRU

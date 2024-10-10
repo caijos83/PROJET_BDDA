@@ -4,7 +4,7 @@ public class DBConfigTest {
     public static void main(String[] args) {
         // Création manuelle d'une instance de DBConfig
         // Exemple avec pagesize = 4096 et dm_maxfilesize = 10 Mo
-        DBConfig config = new DBConfig("../DB", 4096, 10485760);
+        DBConfig config = new DBConfig("../DB", 4096, 10485760, 10, "LRU");
         System.out.println("Chemin défini manuellement");
         config.printConfig();  // Affiche le chemin de la DB
 
