@@ -1,4 +1,4 @@
-package projet_SGBD;
+//package projet_SGBD;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -65,7 +65,7 @@ public class DiskManager {
 
     // Charger l'état du DiskManager
     @SuppressWarnings("unchecked")
-	public void LoadState() throws IOException, ClassNotFoundException {
+    public void LoadState() throws IOException, ClassNotFoundException {
         ObjectInputStream in = new ObjectInputStream(new FileInputStream(config.getDbpath() + "/dm.save"));
         freePages = (List<PageId>) in.readObject();
         in.close();
