@@ -1,10 +1,10 @@
-package projet_SGBD;
+//package projet_SGBD;
 import java.nio.ByteBuffer;
 
 public class DiskManagerTest {
 
     public static void main(String[] args) throws Exception {
-        DBConfig config = DBConfig.LoadDBConfig("./config.txt");
+        DBConfig config = DBConfig.loadDBConfig("./config.txt");
         DiskManager dm = new DiskManager(config);
 
         // Test allocation de page
