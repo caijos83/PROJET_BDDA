@@ -86,8 +86,11 @@ public class Relation {
 
         return totalSize;
     }
+    
+    public int getColumnNumber() {
+        return columnNames.size();
+    }
 
-    // Getters pour le nom et les colonnes si nécessaire
     public String getName() {
         return name;
     }
