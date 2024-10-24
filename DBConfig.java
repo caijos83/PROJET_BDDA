@@ -87,5 +87,13 @@ public class DBConfig {
 	}
 
 
+	public int getBmBuffercount() {
+		return bm_buffercount;
+	}
+
+	public String getBmPolicy() {
+		return bm_policy;
+	}
+
 
 }
