@@ -1,16 +1,17 @@
 import java.io.IOException;
 
-public class DBConfigTest {
+public class TestDBConfig {
     public static void main(String[] args) {
         // Création manuelle d'une instance de DBConfig
-        // Exemple avec pagesize = 4096 et dm_maxfilesize = 10 Mo
-        DBConfig config = new DBConfig("../DB", 4096, 10485760, 10, "LRU");
+        // Exemple avec pagesize = 4 et dm_maxfilesize = 1o
+    	DBConfig.BMpolicy bm_policy=DBConfig.BMpolicy.LRU;
+        DBConfig config = new DBConfig("../DB", 4, 8,bm_policy,4);
         System.out.println("Chemin défini manuellement");
         config.printConfig();  // Affiche le chemin de la DB
 
         // Création via un fichier texte
         try {
-            DBConfig configFromFile = DBConfig.LoadDBConfig("config.txt");
+            DBConfig configFromFile = DBConfig.loadDBConfig("config.txt");
             System.out.println("Chemnin lu à partir du fichier config.txt" );
             configFromFile.printConfig();
         } catch (IOException e) {
