@@ -1,0 +1,25 @@
+// Méthode pour extraire l'index d'un fichier à partir de son nom
+    private int extractFileIndex(String fileName) {
+        // Extrait l'index du fichier en prenant tout ce qu’il y a entre le F et le point. On le convertir en entier car c'est un caractère
+        return Integer.parseInt(fileName.substring(1, fileName.indexOf('.')));
+    }
+
+    // Méthode pour calculer l'index de la prochaine (nouvelle) page d'un fichier
+    private int getNextPageIndex(File file) {
+        // Le prochain index disponible pour une nouvelle page est le nombre de pages exacte du fichier (car les index commencent à 0).
+        return (int) (file.length() / config.getPagesize());
+    }
+
+    // Méthode pour déterminer le prochain index de fichier disponible
+    private int getNextFileIndex(File[] fichiers) {
+        int maxIndex = -1;
+        if (fichiers != null) {
+            for (File fichier : fichiers) {
+                int index = extractFileIndex(fichier.getName());
+                if (index > maxIndex) {
+                    maxIndex = index;
+                }
+            }
+        }
+        return maxIndex + 1;
+    }
