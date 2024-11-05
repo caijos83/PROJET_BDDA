@@ -3,11 +3,11 @@ import java.nio.ByteBuffer;
 public class DiskManagerTest {
 
     public static void main(String[] args) throws Exception {
-        DBConfig config = DBConfig.LoadDBConfig("config.txt");
+        DBConfig config = DBConfig.loadDBConfig("config.txt");
         DiskManager dm = new DiskManager(config);
 
         // Test allocation de page
-        PageId pageId = dm.AllocPage();
+        PageId pageId = dm.allocPage();
         System.out.println("Page allouée: " + pageId);
 
 
@@ -15,16 +15,16 @@ public class DiskManagerTest {
         buff.put("Hello, World!".getBytes());
         System.out.println(buff.position() + " " + buff.capacity());
         buff.flip();
-        dm.WritePage(pageId, buff);
+        dm.writePage(pageId, buff);
 
 
         ByteBuffer readBuff = ByteBuffer.allocate(config.getPagesize());
-        dm.ReadPage(pageId, readBuff);
+        dm.readPage(pageId, readBuff);
         readBuff.flip();
         System.out.println("Contenu lu: " + new String(readBuff.array()));
 
         // Test désallocation de page
-        dm.DeallocPage(pageId);
+        dm.deallocPage(pageId);
         System.out.println("Page désallouée: " + pageId);
 
         // Test sauvegarde de l'état
@@ -32,7 +32,7 @@ public class DiskManagerTest {
         System.out.println("État sauvegardé");
 
         // Test chargement de l'état""
-        dm.LoadState();
+        dm.loadState();
         System.out.println("État chargé");
     }
 }

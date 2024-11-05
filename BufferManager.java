@@ -3,11 +3,13 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+
+
 public class BufferManager {
     private DBConfig config;
     private DiskManager diskManager;
     private Map<PageId, ByteBuffer> bufferPool; // Contient les pages chargées
-    private String replacementPolicy; // LRU ou MRU
+    private DBConfig.BMpolicy replacementPolicy; // LRU ou MRU
 
     public BufferManager(DBConfig config, DiskManager diskManager) {
         this.config = config;
@@ -25,7 +27,7 @@ public class BufferManager {
 
         // Si la page n'est pas dans le buffer, on la charge depuis le disque
         ByteBuffer buff = ByteBuffer.allocate(config.getPagesize());
-        diskManager.ReadPage(pageId, buff);
+        diskManager.readPage(pageId, buff);
 
         // Appliquer la politique de remplacement si nécessaire
         if (bufferPool.size() >= config.getBm_buffercount()) {
@@ -53,7 +55,7 @@ public class BufferManager {
     }
 
     // Changer la politique de remplacement
-    public void SetCurrentReplacementPolicy(String policy) {
+    public void SetCurrentReplacementPolicy(DBConfig.BMpolicy policy) {
         this.replacementPolicy = policy;
     }
 
@@ -63,7 +65,7 @@ public class BufferManager {
             PageId pageId = entry.getKey();
             ByteBuffer buff = entry.getValue();
             // Si la page est dirty, écrire sur le disque
-            diskManager.WritePage(pageId, buff);
+            diskManager.writePage(pageId, buff);
         }
         bufferPool.clear(); // Réinitialiser tous les buffers
     }

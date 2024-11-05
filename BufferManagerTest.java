@@ -18,10 +18,10 @@ public class BufferManagerTest {
         BufferManager bufferManager = new BufferManager(config, diskManager);
 
         // Créer et allouer quelques pages
-        PageId page1 = diskManager.AllocPage();
-        PageId page2 = diskManager.AllocPage();
-        PageId page3 = diskManager.AllocPage();
-        PageId page4 = diskManager.AllocPage(); // Cela forcera la politique de remplacement
+        PageId page1 = diskManager.allocPage();
+        PageId page2 = diskManager.allocPage();
+        PageId page3 = diskManager.allocPage();
+        PageId page4 = diskManager.allocPage(); // Cela forcera la politique de remplacement
 
         // Charger les pages dans le buffer
         System.out.println("Chargement de la page 1...");
@@ -41,7 +41,7 @@ public class BufferManagerTest {
 
         // Tester la politique MRU
         System.out.println("Changement de la politique de remplacement à MRU...");
-        bufferManager.SetCurrentReplacementPolicy("MRU");
+        bufferManager.SetCurrentReplacementPolicy(DBConfig.BMpolicy.MRU);
 
         // Charger de nouvelles pages et observer le remplacement selon la nouvelle politique
         System.out.println("Chargement de la page 2...");
