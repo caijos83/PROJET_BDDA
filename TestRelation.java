@@ -1,10 +1,18 @@
 /*package projet_SGBD;*/
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class TestRelation {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         // Création de la relation
-        Relation relation = new Relation("Students");
+        DBConfig config = DBConfig.loadDBConfig("config.txt");
+        DiskManager dm = new DiskManager(config);
+
+        BufferManager bm = new BufferManager(config, dm);
+
+        // Création d'un identifiant de page d'en-tête pour la relation (valeur simulée pour le test)
+        PageId headerPageId = new PageId(0, 0);
+        Relation relation = new Relation("Students",headerPageId,dm,bm);
         relation.addColumn("id", "INT");
         relation.addColumn("gpa", "REAL");
         relation.addColumn("name", "VARCHAR(50)");
