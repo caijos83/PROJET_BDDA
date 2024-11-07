@@ -1,3 +1,0 @@
-dbpath = ./DB
-pagesize = 4096
-dm_maxfilesize = 10485760
