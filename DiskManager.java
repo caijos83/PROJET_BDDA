@@ -1,11 +1,10 @@
 import java.io.*;
-import java.nio.BufferOverflowException;
-import java.nio.ByteBuffer;
+import java.nio.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DiskManager {
-    private final DBConfig config;
+    private  DBConfig config;
     private List<PageId> freePages;
 
 
@@ -13,6 +12,10 @@ public class DiskManager {
         this.config = config;
         this.freePages = new ArrayList<>();
     }
+   public DBConfig getConf() {
+	   return this.config;
+   }
+
 
     public PageId allocPage() throws IOException {
         // Si on a des pages libres, les utiliser en priorité
@@ -55,9 +58,39 @@ public class DiskManager {
             e.printStackTrace();
         }
 
-        // En cas d’échec complet, retourner null ou lever une exception personnalisée
+        // 5. En cas d’échec complet, retourner null ou lever une exception personnalisée
         throw new IOException("Impossible d'allouer une page.");
     }
+
+    // Méthode pour extraire l'index d'un fichier à partir de son nom
+    private int extractFileIndex(String fileName) {
+        // Extrait l'index du fichier en prenant tout ce qu’il y a entre le F et le point. On le convertir en entier car c'est un caractère
+        return Integer.parseInt(fileName.substring(1, fileName.indexOf('.')));
+    }
+
+    // Méthode pour calculer l'index de la prochaine (nouvelle) page d'un fichier
+    private int getNextPageIndex(File file) {
+        // Le prochain index disponible pour une nouvelle page est le nombre de pages exacte du fichier (car les index commencent à 0).
+        return (int) (file.length() / config.getPagesize());
+    }
+
+    // Méthode pour déterminer le prochain index de fichier disponible
+    private int getNextFileIndex(File[] fichiers) {
+        int maxIndex = -1;
+        if (fichiers != null) {
+            for (File fichier : fichiers) {
+                int index = extractFileIndex(fichier.getName());
+                if (index > maxIndex) {
+                    maxIndex = index;
+                }
+            }
+        }
+        return maxIndex + 1;
+    }
+
+
+
+    // Lire une page
     public void readPage(PageId pageId, ByteBuffer buff) throws IOException {
         // Vérification de la capacité du ByteBuffer
         if (buff.remaining() < config.getPagesize()) {
@@ -75,14 +108,16 @@ public class DiskManager {
         }
     }
 
+
     // Écrire une page
     public void writePage(PageId pageId, ByteBuffer buff) throws IOException {
+        
         // Vérification de la capacité du ByteBuffer
-        if (buff.remaining() < config.getPagesize()) {
-            throw new BufferOverflowException(); // Lever l'exception si le buffer est plein
-        }
+    	//if (buff.remaining() < config.getPagesize()) {
+           // throw new BufferOverflowException(); // Lever l'exception si le buffer est plein
+        //}
 
-        try (RandomAccessFile file = new RandomAccessFile(config.getDbpath() + "/F" + pageId.getFileIdx() + ".rsdb", "rw")) {
+        try (RandomAccessFile file = new RandomAccessFile(config.getDbpath()+ "/F" + pageId.getFileIdx() + ".rsdb", "rw")) {
             file.seek((long) pageId.getPageIdx() * config.getPagesize());
             byte[] bytes = new byte[config.getPagesize()];
             buff.get(bytes); // Lire les données du ByteBuffer
@@ -94,6 +129,7 @@ public class DiskManager {
         }
     }
 
+    // Désallouer une page
     public void deallocPage(PageId pageId) {
         // Parcourir les fichiers existants pour trouver celui correspondant à pageId
         File dbDir = new File(config.getDbpath());
@@ -125,11 +161,20 @@ public class DiskManager {
 
     // Sauvegarder l'état du DiskManager
     public void saveState() throws IOException {
-        ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/dm.save"));
-        out.writeObject(freePages);
-        out.close();
+        File dbDir = new File(config.getDbpath()); // Créer une instance File pour le dossier
+        if (!dbDir.exists()) {
+            dbDir.mkdirs();  // Créer le dossier s'il est inexistant
+        }
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/dm.save"))) {
+            out.writeObject(freePages);  // Sérialiser et écrire l'objet freePages dans le fichier
+        } // Flux automatiquement fermé ici grace au try-with-ressources
     }
 
+
+
+    // Charger l'état du DiskManager
+    @SuppressWarnings("unchecked")
     public void loadState() throws IOException, ClassNotFoundException {
         // On commence par vérifier si le fichier que l'on veut restaurer est au préalable existant
         File saveFile = new File(config.getDbpath() + "/dm.save");
@@ -143,32 +188,4 @@ public class DiskManager {
             freePages = (List<PageId>) in.readObject();
         } // Flux automatiquement fermé ici grace au try-with-ressources
     }
-
-    // Méthode pour extraire l'index d'un fichier à partir de son nom
-    private int extractFileIndex(String fileName) {
-        // Extrait l'index du fichier en prenant tout ce qu’il y a entre le F et le point. On le convertir en entier car c'est un caractère
-        return Integer.parseInt(fileName.substring(1, fileName.indexOf('.')));
-    }
-
-    // Méthode pour calculer l'index de la prochaine (nouvelle) page d'un fichier
-    private int getNextPageIndex(File file) {
-        // Le prochain index disponible pour une nouvelle page est le nombre de pages exacte du fichier (car les index commencent à 0).
-        return (int) (file.length() / config.getPagesize());
-    }
-
-    // Méthode pour déterminer le prochain index de fichier disponible
-    private int getNextFileIndex(File[] fichiers) {
-        int maxIndex = -1;
-        if (fichiers != null) {
-            for (File fichier : fichiers) {
-                int index = extractFileIndex(fichier.getName());
-                if (index > maxIndex) {
-                    maxIndex = index;
-                }
-            }
-        }
-        return maxIndex + 1;
-    }
-
-
 }

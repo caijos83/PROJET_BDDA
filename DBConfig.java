@@ -1,18 +1,16 @@
-//package projet_SGBD;
 import java.io.*;
-
-
 
 public class DBConfig {
 
-    private String dbpath;
+
+	private String dbpath;
     private int pagesize;
     private long dm_maxfilesize;
     private int bm_buffercount;
     public enum BMpolicy {
         LRU, MRU;
     }
-    private BMpolicy bm_policy;
+    public BMpolicy bm_policy;
 
 
     public DBConfig(String dbpath, int pagesize, long dm_maxfilesize, BMpolicy bm_policy, int bm_buffercount) {
@@ -23,7 +21,14 @@ public class DBConfig {
         this.bm_buffercount = bm_buffercount;
     }
 
-
+    public DBConfig(DBConfig other) {
+        this.dbpath = other.dbpath;
+        this.pagesize = other.pagesize;
+        this.dm_maxfilesize = other.dm_maxfilesize;
+        this.bm_policy = other.bm_policy;
+        this.bm_buffercount = other.bm_buffercount;
+    }
+    
     public static DBConfig loadDBConfig(String filePath) throws IOException {
         System.out.println(System.getProperty("user.dir"));
         String line;
@@ -102,7 +107,10 @@ public class DBConfig {
         System.out.println("BM Policy : " + bm_policy);
         System.out.println("Count Buffer: " + bm_buffercount);
     }
-
+    
+    public void setPagesize(int pz) {
+    	this.pagesize=pz;
+    }
 
 
 }

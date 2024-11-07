@@ -7,7 +7,7 @@ import java.util.List;
 
 public class DiskManagerTests {
     public static void main(String[] args) throws IOException, ClassNotFoundException  {
-        DBConfig config = new DBConfig("C:\\Users\\manon\\OneDrive\\Documents\\L3\\Data", 4096, 12288, DBConfig.BMpolicy.LRU, 3);
+        DBConfig config = new DBConfig("C:\\Users\\emman\\OneDrive\\Bureau\\L3\\BDDA\\BDD\\DB", 4096, 12288, DBConfig.BMpolicy.LRU, 3);
         DiskManager diskManager = new DiskManager(config);
 
         testAllocPage(diskManager);

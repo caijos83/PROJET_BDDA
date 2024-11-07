@@ -2,6 +2,8 @@
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import java.util.List;
+
 public class TestRelation {
     public static void main(String[] args) throws IOException {
         // Création de la relation

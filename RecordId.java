@@ -26,18 +26,4 @@ public class RecordId {
         return "RecordID{" +"pageId=" + pageId + ", slotIdx=" + slotIdx + '}';
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof RecordID)) return false;
-        RecordID that = (RecordID) obj;
-        return slotIdx == that.slotIdx && pageId.equals(that.pageId);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = pageId.hashCode();
-        result = 31 * result + slotIdx;
-        return result;
-    }
 }

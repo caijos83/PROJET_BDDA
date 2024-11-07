@@ -12,7 +12,7 @@ public class DBConfigTests {
 
     // Test the constructor
     public static void testConstructor() {
-        DBConfig config = new DBConfig("./config.txt", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
+        DBConfig config = new DBConfig("C:\\Users\\emman\\OneDrive\\Bureau\\L3\\BDDA\\BDD\\DB", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
 
         assert config.getDbpath().equals("data") : "Dbpath mismatch!";
         assert config.getPagesize() == 4096 : "Pagesize mismatch!";
