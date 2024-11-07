@@ -5,7 +5,7 @@ public class TestRecordID {
         PageId pageId2 = new PageId(3, 4);
 
         // Test du constructeur et des méthodes get
-        RecordID recordID = new RecordID(pageId1, 5);
+        RecordId recordID = new RecordId(pageId1, 5);
         System.out.println("PageId initial: " + recordID.getPageId());
         System.out.println("SlotIdx initial: " + recordID.getSlotIdx());
 
@@ -19,8 +19,8 @@ public class TestRecordID {
         System.out.println("Affichage de RecordID : " + recordID);
 
         // Test d'égalité et de hashCode
-        RecordID recordID2 = new RecordID(new PageId(3, 4), 7);
-        RecordID recordID3 = new RecordID(new PageId(1, 2), 5);
+        RecordId recordID2 = new RecordId(new PageId(3, 4), 7);
+        RecordId recordID3 = new RecordId(new PageId(1, 2), 5);
 
         System.out.println("recordID est-il égal à recordID2 ? " + recordID.equals(recordID2));
         System.out.println("recordID est-il égal à recordID3 ? " + recordID.equals(recordID3));

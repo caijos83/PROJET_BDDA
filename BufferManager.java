@@ -1,73 +1,129 @@
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-
-
+import java.lang.Exception;
 
 public class BufferManager {
-    private DBConfig config;
-    private DiskManager diskManager;
-    private Map<PageId, ByteBuffer> bufferPool; // Contient les pages chargées
-    private DBConfig.BMpolicy replacementPolicy; // LRU ou MRU
+    private final DBConfig dbConfig;
+    private final DiskManager diskManager;
+    private final Map<PageId, ByteBuffer> bufferPool;
+    private int pin_count;
 
-    public BufferManager(DBConfig config, DiskManager diskManager) {
-        this.config = config;
+    private final Map<PageId, Boolean>  flag_dirty;
+
+    // Constructor
+    public BufferManager(DBConfig dbConfig, DiskManager diskManager) {
+        this.dbConfig = dbConfig;
         this.diskManager = diskManager;
-        this.replacementPolicy = config.getBm_policy(); // Initialiser avec la politique de remplacement
-        this.bufferPool = new HashMap<>(); // Pool de buffers
+        this.bufferPool = new HashMap<>();
+        this.flag_dirty = new HashMap<>();
     }
 
-    // Récupérer une page dans un buffer
-    public ByteBuffer GetPage(PageId pageId) throws IOException {
-        // Si la page est déjà dans le buffer
-        if (bufferPool.containsKey(pageId)) {
-            return bufferPool.get(pageId);
+    // Method to get a page
+    public ByteBuffer getPage(PageId pageId) throws IOException {
+        ByteBuffer buffer = bufferPool.get(pageId);
+
+
+        // If page is not in the buffer, read from disk and apply replacement policy if needed
+        if (buffer == null) {
+            if (bufferPool.size()<dbConfig.getBm_buffercount()){
+                buffer = ByteBuffer.allocate(dbConfig.getPagesize());
+                diskManager.readPage(pageId, buffer);
+                bufferPool.put(pageId,buffer);
+
+            }else {
+                buffer = ByteBuffer.allocate(dbConfig.getPagesize());
+                diskManager.readPage(pageId, buffer);
+                applyReplacementPolicy(pageId, buffer);
+            }
+
+            
+
         }
+        pin_count++;
 
-        // Si la page n'est pas dans le buffer, on la charge depuis le disque
-        ByteBuffer buff = ByteBuffer.allocate(config.getPagesize());
-        diskManager.readPage(pageId, buff);
+        return buffer;
+    }
 
-        // Appliquer la politique de remplacement si nécessaire
-        if (bufferPool.size() >= config.getBm_buffercount()) {
-            applyReplacementPolicy();
+    private void applyReplacementPolicy(PageId pageId, ByteBuffer buffer) {
+        if (bufferPool.size() >= dbConfig.getBm_buffercount()) {
+            PageId pageToEvict = findPageToEvict();
+            bufferPool.remove(pageToEvict);
         }
-
-        // Ajouter la page dans le buffer pool
-        bufferPool.put(pageId, buff);
-        return buff;
+        bufferPool.put(pageId, buffer);
     }
 
-    // Libérer une page dans le buffer
-    public void FreePage(PageId pageId, boolean dirty) {
-        // Mettre à jour le flag dirty et décrémenter le pin_count (non montré ici)
-        // Pas d'appel au DiskManager ici
-    }
-
-    // Appliquer la politique de remplacement (LRU/MRU)
-    private void applyReplacementPolicy() {
-        if ("LRU".equals(replacementPolicy)) {
-            // Appliquer la politique LRU pour remplacer la page
-        } else if ("MRU".equals(replacementPolicy)) {
-            // Appliquer la politique MRU pour remplacer la page
+    private PageId findPageToEvict() {
+        if (dbConfig.getBm_policy() == DBConfig.BMpolicy.LRU) {
+            return findLeastRecentlyUsedPage();
+        } else { // MRU
+            return findMostRecentlyUsedPage();
         }
     }
 
-    // Changer la politique de remplacement
-    public void SetCurrentReplacementPolicy(DBConfig.BMpolicy policy) {
-        this.replacementPolicy = policy;
+    private PageId findMostRecentlyUsedPage() {
+        // MRU logic here (simplified for demonstration)
+        return bufferPool.keySet().iterator().next();
     }
 
-    // Vider tous les buffers et écrire les pages modifiées sur disque
-    public void FlushBuffers() throws IOException {
+    private PageId findLeastRecentlyUsedPage() {
+        // LRU logic here (simplified for demonstration)
+
+        PageId leastRecent = null;
+        for (PageId pageId : bufferPool.keySet()) {
+            leastRecent = pageId;
+        }
+        return leastRecent;
+    }
+
+    // Method to free a page
+    public void freePage(PageId pageId, boolean isDirty) {
+        pin_count = Math.max(0, pin_count - 1); // Decrement pin_count without going below 0
+        flag_dirty.put(pageId,isDirty);
+        
+        if (isDirty) {
+            ByteBuffer buffer = bufferPool.get(pageId);
+            if (buffer != null) {
+                bufferPool.put(pageId, buffer); // Update buffer pool with dirty flag
+            }
+        }
+    }
+
+    // Method to set current replacement policy
+    public void setCurrentReplacementPolicy(DBConfig.BMpolicy policy) {
+        dbConfig.bm_policy = policy;
+    }
+
+    // Method to flush all buffers to disk
+    public void flushBuffers() throws IOException {
         for (Map.Entry<PageId, ByteBuffer> entry : bufferPool.entrySet()) {
-            PageId pageId = entry.getKey();
-            ByteBuffer buff = entry.getValue();
-            // Si la page est dirty, écrire sur le disque
-            diskManager.writePage(pageId, buff);
+        	PageId pageId = entry.getKey();
+        	ByteBuffer buffer = entry.getValue();
+        	
+        	if (Boolean.TRUE.equals(this.flag_dirty.get(pageId) ) ) {
+                diskManager.writePage(pageId, buffer);
+            }
         }
-        bufferPool.clear(); // Réinitialiser tous les buffers
+        bufferPool.clear(); // Reset buffers
+        flag_dirty.clear();
+        pin_count = 0;
+        
+    }
+
+    public Boolean getFlagDirty(PageId pageId) throws IOException{
+        Boolean r = flag_dirty.get(pageId);
+        if (r == null) {
+            throw new IOException("La pageId n'existe pas");
+        }
+        return r;
+    }
+    public Boolean isLoad(PageId pageId){
+        if (bufferPool.containsKey(pageId)) {
+            return true;
+        }else{
+            return false;
+        }
     }
 }
-

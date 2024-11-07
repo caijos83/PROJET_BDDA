@@ -129,7 +129,7 @@ public class Relation {
     }
     public PageId getFreeDataPageId( int sizeRecord)throws IOException {
         for (PageId pageId : pageDirectory) {
-            ByteBuffer buffer = bm.GetPage(pageId);         
+            ByteBuffer buffer = bm.getPage(pageId);         
             int freeSpace = buffer.capacity() - buffer.position();// Vérifie si le ByteBuffer a assez d'espace pour le record
             if (freeSpace >= sizeRecord) {
                 return pageId; // Retourne la première page avec assez de place
@@ -139,21 +139,21 @@ public class Relation {
         return null;
     }
 
-    public RecordID writeRecordToDataPage(Record record, PageId pageId) throws IOException {
+    public RecordId writeRecordToDataPage(Record record, PageId pageId) throws IOException {
 
-        ByteBuffer buffer = bm.GetPage(pageId);
+        ByteBuffer buffer = bm.getPage(pageId);
         int pos = buffer.position();
         int bytesWritten = writeRecordToBuffer(record, buffer, pos);
 
         int slotIdx = pos / bytesWritten;
-        return new RecordID(pageId, slotIdx);
+        return new RecordId(pageId, slotIdx);
     }
 
 
     public List<Record> getRecordsInDataPage(PageId pageId) throws IOException {
 
         List<Record> records = new ArrayList<>();
-        ByteBuffer buffer = bm.GetPage(pageId);
+        ByteBuffer buffer = bm.getPage(pageId);
         buffer.position(0);
 
         // Lire chaque enregistrement dans la page
@@ -177,14 +177,14 @@ public class Relation {
         List<PageId> dataPages = new ArrayList<>();
 
         // Récupérer la page d'en-tête qui contient les PageIds des pages de données
-        ByteBuffer headerBuffer = bm.GetPage(headerPageId);
+        ByteBuffer headerBuffer = bm.getPage(headerPageId);
 
         // Suppose que la liste des PageIds des pages de données commence à un endroit spécifique de la Header Page.
         // (Cette partie peut varier selon la façon dont la Header Page est structurée)
         headerBuffer.position(0);
         while (headerBuffer.remaining() > 0) {
             int pageIdValue = headerBuffer.getInt();
-            PageId pageId = new PageId(pageIdValue);
+            PageId pageId = new PageId(pageIdValue,);
             dataPages.add(pageId);
         }
 
@@ -195,7 +195,7 @@ public class Relation {
     }
 
     // Méthode pour insérer un Record
-    public RecordID InsertRecord(Record record) throws IOException {
+    public RecordId InsertRecord(Record record) throws IOException {
         // Calculer la taille du record à insérer
         int sizeRecord = getRecordSize(record);
         
@@ -209,7 +209,7 @@ public class Relation {
         }
 
         // Écrire le record dans la page et obtenir le RecordId
-        RecordID rid = writeRecordToDataPage(record, freePageId);
+        RecordId rid = writeRecordToDataPage(record, freePageId);
 
         return rid;
     }
