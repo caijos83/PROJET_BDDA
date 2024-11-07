@@ -1,4 +1,4 @@
-/*package projet_SGBD;*/
+package miniSGBDR;
 import java.nio.ByteBuffer;
 
 public class TestRelation {
