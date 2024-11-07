@@ -124,7 +124,7 @@ public class DiskManager {
     }
 
     // Sauvegarder l'état du DiskManager
-    public void SaveState() throws IOException {
+    public void saveState() throws IOException {
         ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/dm.save"));
         out.writeObject(freePages);
         out.close();
