@@ -7,7 +7,7 @@ public class DiskManagerTest {
         DiskManager dm = new DiskManager(config);
 
         // Test allocation de page
-        PageId pageId = dm.AllocPage();
+        PageId pageId = dm.AllocPage("TableName");
         System.out.println("Page allouée: " + pageId);
 
 
