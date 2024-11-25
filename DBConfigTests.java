@@ -15,7 +15,6 @@ public class DBConfigTests {
     // Test the constructor
     public static void testConstructor() {
         DBConfig config = new DBConfig("C:\\Users\\manon\\OneDrive\\Documents\\L3\\Data", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
-
         assert config.getDbpath().equals("data") : "Dbpath mismatch!";
         assert config.getPagesize() == 4096 : "Pagesize mismatch!";
         assert config.getDm_maxfilesize() == 1048576 : "Maxfilesize mismatch!";

@@ -46,7 +46,6 @@ public class DBConfig {
                 switch (parts[0].trim()) {
                     case "dbpath":
                         dbpath = parts[1].trim();
-                        // trim() est utilisé pour enlever les espaces blancs en début et fin de chaîne, assurant que les clés et valeurs sont correctement interprétées.
                         break;
                     case "pagesize":
                         pagesize = Integer.parseInt(parts[1].trim());
@@ -69,14 +68,11 @@ public class DBConfig {
             }
             reader.close();
         } catch (FileNotFoundException e) {
-            // Gestion de l'exception : fichier introuvable
             System.out.println("Fichier introuvable: " + filePath);
         }
         catch (IOException e){
-            // Gestion de l'exception
             e.printStackTrace();
         }finally {
-            // fermeture du flux
             reader.close();
         }
         return new DBConfig(dbpath, pagesize, dm_maxfilesize, bm_policy, bm_buffercount);

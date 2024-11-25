@@ -1,14 +1,11 @@
 package miniSGBDR;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 public class DiskManagerTests {
     public static void main(String[] args) throws IOException, ClassNotFoundException  {
-        DBConfig config = new DBConfig("C:\\Users\\manon\\OneDrive\\Documents\\L3\\Data", 4096, 12288, DBConfig.BMpolicy.LRU, 3);
+        DBConfig config = new DBConfig("C:\\Users\\manon\\OneDrive\\Documents\\L3\\Data", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
         DiskManager diskManager = new DiskManager(config);
 
         testAllocPage(diskManager);
@@ -17,14 +14,12 @@ public class DiskManagerTests {
         testSaveLoadState(diskManager);
     }
 
-    // Test allocating a page
     public static void testAllocPage(DiskManager diskManager) throws IOException {
         PageId pageId = diskManager.allocPage();
         System.out.println("Allocated PageId: " + pageId);
         assert pageId != null : "Allocation failed!";
     }
 
-    // Test reading and writing a page
     public static void testReadWritePage(DiskManager diskManager) throws IOException {
         PageId pageId = diskManager.allocPage();
         ByteBuffer writeBuffer = ByteBuffer.allocate(5096);
@@ -43,7 +38,6 @@ public class DiskManagerTests {
         assert content.equals("Hello World!") : "Content mismatch!";
     }
 
-    // Test deallocating a page
     public static void testDeallocPage(DiskManager diskManager) {
         try {
             PageId pageId = diskManager.allocPage();
@@ -54,8 +48,7 @@ public class DiskManagerTests {
         }
     }
 
-    // Test saving and loading state
- // Test saving and loading state
+
     public static void testSaveLoadState(DiskManager diskManager) throws IOException, ClassNotFoundException {
         diskManager.saveState();
         diskManager.loadState();
