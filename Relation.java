@@ -154,6 +154,13 @@ public class Relation implements Serializable {
         return totalSize;
     }
 
+    /**
+     * Les deux méthodes "saveHeaderPageId" et "loadHeaderPageId"
+     * sont utilisées pour sauvegarder et charger l'identifiant
+     * de la page d'en-tête (header page) d'une table ou d'une
+     * relation, dans le contexte de la sérialisation (sauvegarde
+     * et restauration de l'état).*/
+
     public void saveHeaderPageId(ObjectOutputStream oos) throws IOException {
         if (headerPageId != null) {
             oos.writeInt(headerPageId.getFileIdx());
