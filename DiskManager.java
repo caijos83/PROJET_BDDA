@@ -1,5 +1,5 @@
 import java.io.*;
-import java.nio.ByteBuffer;
+import java.nio.*;
 import java.util.*;
 
 public class DiskManager {
@@ -7,15 +7,20 @@ public class DiskManager {
     private List<PageId> freePages;
     private Map<String, List<PageId>> pageTableMapping; // Associe les noms de tables aux pages utilisées
 
-
     public DiskManager(DBConfig config) {
         this.config = config;
         this.freePages = new ArrayList<>();
-        pageTableMapping = new HashMap<>(); // Initialise la map
+        this.pageTableMapping = new HashMap<>(); // Initialiser les associations table-pages
+
+        // Assurer que le dossier BinData existe
+        File binDataDir = new File(config.getDbpath() + "/BinData");
+        if (!binDataDir.exists()) {
+            binDataDir.mkdirs();
+        }
     }
 
-
-    public PageId AllocPage(String tableName) {
+    // Allouer une nouvelle page
+    public PageId allocPage(String tableName) throws IOException {
         PageId pageId;
 
         if (!freePages.isEmpty()) {
@@ -23,13 +28,13 @@ public class DiskManager {
             pageId = freePages.remove(0);
         } else {
             // Alloue une nouvelle page
-            int fileIdx = 0; // Exemple, il faut ajuster selon la logique du fichier courant
+            int fileIdx = 0;
 
             if (config.getPagesize() == 0) {
-                throw new ArithmeticException("pagesize ne peut pas être zéro");
+                throw new ArithmeticException("Page size cannot be zero.");
             }
 
-            int pageIdx = (int) (new File(config.getDbpath() + "/F" + fileIdx + ".rsdb").length() / config.getPagesize());
+            int pageIdx = (int) (new File(config.getDbpath() + "/BinData/F" + fileIdx + ".rsdb").length() / config.getPagesize());
             pageId = new PageId(fileIdx, pageIdx);
         }
 
@@ -39,52 +44,69 @@ public class DiskManager {
         return pageId;
     }
 
-
     // Lire une page
-    public void ReadPage(PageId pageId, ByteBuffer buff) throws IOException {
-        RandomAccessFile file = new RandomAccessFile(config.getDbpath() + "/F" + pageId.getFileIdx() + ".rsdb", "r");
-        file.seek((long) pageId.getPageIdx() * config.getPagesize());
-        byte[] bytes = new byte[config.getPagesize()];
-        file.readFully(bytes);
-        buff.put(bytes);
-        file.close();
+    public void readPage(PageId pageId, ByteBuffer buffer) throws IOException {
+        File file = new File(config.getDbpath() + "/BinData/F" + pageId.getFileIdx() + ".rsdb");
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            raf.seek((long) pageId.getPageIdx() * config.getPagesize());
+            byte[] data = new byte[config.getPagesize()];
+            raf.readFully(data);
+            buffer.put(data);
+        }
     }
 
     // Écrire une page
-    public void WritePage(PageId pageId, ByteBuffer buff) throws IOException {
-        RandomAccessFile file = new RandomAccessFile(config.getDbpath() + "/F" + pageId.getFileIdx() + ".rsdb", "rw");
-        file.seek((long) pageId.getPageIdx() * config.getPagesize());
-//        byte[] bytes = new byte[config.getPagesize()];
-//        buff.get(bytes);
-        file.write(buff.array());
-        file.close();
+    public void writePage(PageId pageId, ByteBuffer buffer) throws IOException {
+        buffer.rewind();
+
+        File file = new File(config.getDbpath() + "/BinData/F" + pageId.getFileIdx() + ".rsdb");
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            long position = (long) pageId.getPageIdx() * config.getPagesize();
+            raf.seek(position);
+            byte[] data = new byte[config.getPagesize()];
+            buffer.get(data);
+            raf.write(data);
+        }
     }
 
     // Désallouer une page
-    public void DeallocPage(PageId pageId) {
-        freePages.add(pageId); // Ajouter à la liste des pages libres
+    public void deallocPage(PageId pageId) {
+        freePages.add(pageId);
     }
 
-    // Sauvegarder l'état du DiskManager
-    public void SaveState() throws IOException {
-        ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/dm.save"));
-        out.writeObject(freePages);
-        out.close();
+    // Sauvegarder l'état
+    public void saveState() throws IOException {
+        File dbDir = new File(config.getDbpath() + "/BinData");
+        if (!dbDir.exists()) {
+            dbDir.mkdirs();
+        }
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/BinData/dm.save"))) {
+            out.writeObject(freePages);
+            out.writeObject(pageTableMapping); // Sauvegarder les associations table-pages
+        }
     }
 
-    // Charger l'état du DiskManager
-    public void LoadState() throws IOException, ClassNotFoundException {
-        ObjectInputStream in = new ObjectInputStream(new FileInputStream(config.getDbpath() + "/dm.save"));
-        freePages = (List<PageId>) in.readObject();
-        in.close();
+    // Charger l'état
+    @SuppressWarnings("unchecked")
+    public void loadState() throws IOException, ClassNotFoundException {
+        File saveFile = new File(config.getDbpath() + "/BinData/dm.save");
+
+        if (!saveFile.exists()) {
+            System.out.println("No saved state found.");
+            return;
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(saveFile))) {
+            freePages = (List<PageId>) in.readObject();
+            pageTableMapping = (Map<String, List<PageId>>) in.readObject(); // Charger les associations
+        }
     }
 
-    public List<PageId> GetPagesForTable(String tableName) {
-        // retourne une liste des pages associées
-        return pageTableMapping.getOrDefault(tableName, Collections.emptyList()); // Où pageTableMapping est une Map<String, List<PageId>>
+    // Récupérer les pages associées à une table
+    public List<PageId> getPagesForTable(String tableName) {
+        return pageTableMapping.getOrDefault(tableName, Collections.emptyList());
     }
-
-
 
     /**
      * Marque une page comme libre en la retirant des associations avec les tables
@@ -98,17 +120,21 @@ public class DiskManager {
      *    - Si elle n'y est pas, elle est ajoutée, marquant ainsi qu'elle est libre pour une future réutilisation.
      *    - Sinon, un message indique que la page est déjà libre.
      */
-    public void FreePage(PageId pageId) {
-        // Supprime la page des associations avec les tables
+    public void freePage(PageId pageId) {
         pageTableMapping.values().forEach(pageList -> pageList.remove(pageId));
 
-        // Ajoute la page à la liste des pages libres
         if (!freePages.contains(pageId)) {
             freePages.add(pageId);
-            System.out.println("Page " + pageId + " freed.");
-        } else {
-            System.out.println("Page " + pageId + " is already in the free list.");
         }
     }
 
+    // Supprimer une table et ses pages associées
+    public void removeTable(String tableName) {
+        List<PageId> pages = pageTableMapping.remove(tableName);
+        if (pages != null) {
+            for (PageId pageId : pages) {
+                deallocPage(pageId);
+            }
+        }
+    }
 }
