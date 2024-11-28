@@ -72,7 +72,7 @@ public class SGBD {
         try {
             // Extraction des parties de la commande
             int startIndex = command.indexOf("(");
-            int endIndex = command.indexOf(")");
+            int endIndex = command.length()-1;
 
             if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) {
                 throw new IllegalArgumentException("Invalid CREATE TABLE command: missing or malformed parentheses.");
@@ -132,7 +132,7 @@ public class SGBD {
     // Méthode main
     public static void main(String[] args) {
         // Initialiser avec un exemple de configuration
-        DBConfig config = new DBConfig("./DB", 4096, 10_485_760, DBConfig.BMpolicy.LRU, 10);
+        DBConfig config = new DBConfig("./BinData", 4096, 10_485_760, DBConfig.BMpolicy.LRU, 10);
         SGBD sgbd = new SGBD(config);
         sgbd.run();
     }

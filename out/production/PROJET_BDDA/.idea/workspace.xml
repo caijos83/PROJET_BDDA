@@ -5,21 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="02ecc799-9714-4dfe-8952-267e133c0fe3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/BufferManagerTests.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/DiskManagerTests.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/RelationTests.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BufferManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/BufferManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BufferManagerTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DBConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/DBConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DBConfigTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/DBConfigTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DBManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/DBManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/C:\Users\manon\OneDrive\Documents\L3\Data/BinData/F0.rsdb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/C:\Users\manon\OneDrive\Documents\L3\Data/BinData/dm.save" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DBConfigTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/DBConfigTests.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DiskManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/DiskManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DiskManagerTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PageId.java" beforeDir="false" afterPath="$PROJECT_DIR$/PageId.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Record.java" beforeDir="false" afterPath="$PROJECT_DIR$/Record.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Relation.java" beforeDir="false" afterPath="$PROJECT_DIR$/Relation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DiskManagerTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/DiskManagerTests.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SGBD.java" beforeDir="false" afterPath="$PROJECT_DIR$/SGBD.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TestRelation.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test_dbconfig.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/PROJET_BDDA/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/PROJET_BDDA/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/PROJET_BDDA/DB/databases.save" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/PROJET_BDDA/DB/databases.save" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/PROJET_BDDA/DBConfigTest.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/PROJET_BDDA/DiskManager.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/PROJET_BDDA/DiskManager.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/PROJET_BDDA/DiskManagerTests.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/PROJET_BDDA/DiskManagerTests.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/PROJET_BDDA/Relation.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/PROJET_BDDA/Relation.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/PROJET_BDDA/SGBD.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/PROJET_BDDA/SGBD.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,6 +50,19 @@
         </map>
       </branch-storage>
     </excluded-from-favorite>
+    <favorite-branches>
+      <branch-storage>
+        <map>
+          <entry type="LOCAL">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$" source="hawa" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </favorite-branches>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="PhpWorkspaceProjectConfiguration" interpreter_name="/usr/bin/php" />
@@ -66,6 +79,7 @@
     "Application.BufferManagerTest.executor": "Run",
     "Application.DBConfigTest.executor": "Run",
     "Application.DiskManagerTest.executor": "Run",
+    "Application.DiskManagerTests.executor": "Run",
     "Application.SGBD.executor": "Run",
     "Application.TestRelation.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -108,7 +122,9 @@
       <workItem from="1729781295175" duration="8083000" />
       <workItem from="1730986796708" duration="7880000" />
       <workItem from="1731322340306" duration="590000" />
-      <workItem from="1732008358454" duration="29928000" />
+      <workItem from="1732008358454" duration="35368000" />
+      <workItem from="1732737158188" duration="27000" />
+      <workItem from="1732790564249" duration="6429000" />
     </task>
     <servers />
   </component>

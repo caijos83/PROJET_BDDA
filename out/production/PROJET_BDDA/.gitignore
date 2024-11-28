@@ -1,0 +1,9 @@
+.idea/misc.xml
+
+# Ignorer les fichiers système et binaires
+.DS_Store
+*.save
+*.rsdb
+
+# Ignorer les dossiers de build
+/out/

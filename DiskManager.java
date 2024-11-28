@@ -34,7 +34,7 @@ public class DiskManager {
                 throw new ArithmeticException("Page size cannot be zero.");
             }
 
-            int pageIdx = (int) (new File(config.getDbpath() + "/BinData/F" + fileIdx + ".rsdb").length() / config.getPagesize());
+            int pageIdx = (int) (new File(config.getDbpath() + "./Data/BinData/F" + fileIdx + ".rsdb").length() / config.getPagesize());
             pageId = new PageId(fileIdx, pageIdx);
         }
 
@@ -46,7 +46,7 @@ public class DiskManager {
 
     // Lire une page
     public void readPage(PageId pageId, ByteBuffer buffer) throws IOException {
-        File file = new File(config.getDbpath() + "/BinData/F" + pageId.getFileIdx() + ".rsdb");
+        File file = new File(config.getDbpath() + "./Data/BinData/F" + pageId.getFileIdx() + ".rsdb");
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             raf.seek((long) pageId.getPageIdx() * config.getPagesize());
             byte[] data = new byte[config.getPagesize()];
@@ -59,7 +59,7 @@ public class DiskManager {
     public void writePage(PageId pageId, ByteBuffer buffer) throws IOException {
         buffer.rewind();
 
-        File file = new File(config.getDbpath() + "/BinData/F" + pageId.getFileIdx() + ".rsdb");
+        File file = new File(config.getDbpath() + "./Data/BinData/F" + pageId.getFileIdx() + ".rsdb");
         try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
             long position = (long) pageId.getPageIdx() * config.getPagesize();
             raf.seek(position);
@@ -81,7 +81,7 @@ public class DiskManager {
             dbDir.mkdirs();
         }
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/BinData/dm.save"))) {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/DB/dm.save"))) {
             out.writeObject(freePages);
             out.writeObject(pageTableMapping); // Sauvegarder les associations table-pages
         }

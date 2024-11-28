@@ -4,7 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-public class DBConfigTest {
+public class DBConfigTests {
 
     public static void main(String[] args) throws IOException {
         testConstructor();
@@ -14,7 +14,7 @@ public class DBConfigTest {
 
     // Test the constructor
     public static void testConstructor() {
-        DBConfig config = new DBConfig("C:\\Users\\manon\\OneDrive\\Documents\\L3\\Data", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
+        DBConfig config = new DBConfig("./DB", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
         assert config.getDbpath().equals("data") : "Dbpath mismatch!";
         assert config.getPagesize() == 4096 : "Pagesize mismatch!";
         assert config.getDm_maxfilesize() == 1048576 : "Maxfilesize mismatch!";
