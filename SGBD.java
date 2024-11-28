@@ -72,7 +72,7 @@ public class SGBD {
         try {
             // Extraction des parties de la commande
             int startIndex = command.indexOf("(");
-            int endIndex = command.indexOf(")");
+            int endIndex = command.length()-1;
 
             if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) {
                 throw new IllegalArgumentException("Invalid CREATE TABLE command: missing or malformed parentheses.");
