@@ -4,127 +4,181 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.lang.Exception;
 
 public class BufferManager {
-    private final DBConfig dbConfig;
-    private final DiskManager diskManager;
-    private final Map<PageId, ByteBuffer> bufferPool;
-    private int pin_count;
+    private final DBConfig dbConfig; // Configuration globale
+    private final DiskManager diskManager; // Gestionnaire de disque
+    private final Map<PageId, ByteBuffer> bufferPool; // Pool de buffers
+    private final Map<PageId, Boolean> flag_dirty; // Indicateurs de pages modifiées
+    private final Map<PageId, Integer> pin_count; // Nombre d'utilisations (pin) par page
 
-    private final Map<PageId, Boolean>  flag_dirty;
-
-    // Constructor
+    // Constructeur
     public BufferManager(DBConfig dbConfig, DiskManager diskManager) {
         this.dbConfig = dbConfig;
         this.diskManager = diskManager;
         this.bufferPool = new HashMap<>();
         this.flag_dirty = new HashMap<>();
+        this.pin_count = new HashMap<>();
     }
 
-    // Method to get a page
+    /**
+     * Récupère une page du pool ou la charge depuis le disque si nécessaire.
+     * @param pageId Identifiant de la page
+     * @return Buffer contenant la page
+     * @throws IOException En cas d'erreur de lecture
+     */
     public ByteBuffer getPage(PageId pageId) throws IOException {
         ByteBuffer buffer = bufferPool.get(pageId);
 
+        if (buffer == null) { // Si la page n'est pas déjà en mémoire
+            buffer = ByteBuffer.allocate(dbConfig.getPagesize());
+            getDiskManager().readPage(pageId, buffer);
 
-        // If page is not in the buffer, read from disk and apply replacement policy if needed
-        if (buffer == null) {
-            if (bufferPool.size()<dbConfig.getBm_buffercount()){
-                buffer = ByteBuffer.allocate(dbConfig.getPagesize());
-                diskManager.readPage(pageId, buffer);
-                bufferPool.put(pageId,buffer);
-
-            }else {
-                buffer = ByteBuffer.allocate(dbConfig.getPagesize());
-                diskManager.readPage(pageId, buffer);
-                applyReplacementPolicy(pageId, buffer);
-            }
-
-            
-
+            // Appliquer la politique de remplacement si nécessaire
+            applyReplacementPolicy(pageId, buffer);
         }
-        pin_count++;
 
+        // Met à jour le compteur de pins
+        pin_count.put(pageId, pin_count.getOrDefault(pageId, 0) + 1);
         return buffer;
     }
 
-    private void applyReplacementPolicy(PageId pageId, ByteBuffer buffer) {
+    /**
+     * Applique la politique de remplacement pour insérer une nouvelle page.
+     * Si le pool est plein, évince une page selon la politique choisie.
+     * @param pageId Identifiant de la nouvelle page à insérer
+     * @param buffer Buffer contenant la page
+     * @throws IOException En cas d'erreur lors de l'écriture d'une page évincée
+     */
+    private void applyReplacementPolicy(PageId pageId, ByteBuffer buffer) throws IOException {
         if (bufferPool.size() >= dbConfig.getBm_buffercount()) {
-            PageId pageToEvict = findPageToEvict();
-            bufferPool.remove(pageToEvict);
+            PageId pageToEvict = findPageToEvict(); // Trouver la page à évincer
+            if (pageToEvict != null) {
+                ByteBuffer evictedBuffer = bufferPool.remove(pageToEvict);
+
+                // Si la page évincée est modifiée, l'écrire sur disque
+                if (Boolean.TRUE.equals(flag_dirty.get(pageToEvict))) {
+                    getDiskManager().writePage(pageToEvict, evictedBuffer);
+                }
+
+                // Nettoyage des métadonnées
+                flag_dirty.remove(pageToEvict);
+                pin_count.remove(pageToEvict);
+            }
         }
+
+        // Insérer la nouvelle page dans le pool
         bufferPool.put(pageId, buffer);
+        pin_count.put(pageId, 1); // Nouvelle page, utilisée une fois
+        flag_dirty.put(pageId, false); // Non modifiée au départ
     }
 
+    /**
+     * Trouve une page à évincer selon la politique courante (LRU ou MRU).
+     * @return Identifiant de la page à évincer
+     */
     private PageId findPageToEvict() {
         if (dbConfig.getBm_policy() == DBConfig.BMpolicy.LRU) {
-            return findLeastRecentlyUsedPage();
+            return findLeastRecentlyUsedPage(); // LRU : page la moins récemment utilisée
         } else { // MRU
-            return findMostRecentlyUsedPage();
+            return findMostRecentlyUsedPage(); // MRU : page la plus récemment utilisée
         }
     }
 
+    /**
+     * Trouve la page la plus récemment utilisée (MRU).
+     * @return Identifiant de la page MRU
+     */
     private PageId findMostRecentlyUsedPage() {
-        // MRU logic here (simplified for demonstration)
-        return bufferPool.keySet().iterator().next();
-    }
-
-    private PageId findLeastRecentlyUsedPage() {
-        // LRU logic here (simplified for demonstration)
-
-        PageId leastRecent = null;
         for (PageId pageId : bufferPool.keySet()) {
-            leastRecent = pageId;
+            return pageId; // Retourne la dernière page rencontrée
         }
-        return leastRecent;
+        return null; // Aucun élément trouvé
     }
 
-    // Method to free a page
+    /**
+     * Trouve la page la moins récemment utilisée (LRU).
+     * @return Identifiant de la page LRU
+     */
+    private PageId findLeastRecentlyUsedPage() {
+        for (PageId pageId : bufferPool.keySet()) {
+            return pageId; // Retourne la première page rencontrée
+        }
+        return null; // Aucun élément trouvé
+    }
+
+    /**
+     * Libère une page en décrémentant son compteur de pins.
+     * Met à jour le flag "dirty" si nécessaire.
+     * @param pageId Identifiant de la page
+     * @param isDirty Indique si la page a été modifiée
+     */
     public void freePage(PageId pageId, boolean isDirty) {
-        pin_count = Math.max(0, pin_count - 1); // Decrement pin_count without going below 0
-        flag_dirty.put(pageId,isDirty);
-        
-        if (isDirty) {
-            ByteBuffer buffer = bufferPool.get(pageId);
-            if (buffer != null) {
-                bufferPool.put(pageId, buffer); // Update buffer pool with dirty flag
+        if (pin_count.containsKey(pageId)) {
+            int currentPinCount = pin_count.get(pageId);
+            if (currentPinCount > 0) {
+                pin_count.put(pageId, currentPinCount - 1);
+                flag_dirty.put(pageId, isDirty || flag_dirty.getOrDefault(pageId, false));
             }
         }
     }
 
-    // Method to set current replacement policy
-    public void setCurrentReplacementPolicy(DBConfig.BMpolicy policy) {
-        dbConfig.bm_policy = policy;
-    }
-
-    // Method to flush all buffers to disk
+    /**
+     * Vide tous les buffers en écrivant les pages modifiées sur disque.
+     * @throws IOException En cas d'erreur d'écriture
+     */
     public void flushBuffers() throws IOException {
         for (Map.Entry<PageId, ByteBuffer> entry : bufferPool.entrySet()) {
-        	PageId pageId = entry.getKey();
-        	ByteBuffer buffer = entry.getValue();
-        	
-        	if (Boolean.TRUE.equals(this.flag_dirty.get(pageId) ) ) {
-                diskManager.writePage(pageId, buffer);
+            PageId pageId = entry.getKey();
+            ByteBuffer buffer = entry.getValue();
+
+            if (Boolean.TRUE.equals(flag_dirty.get(pageId))) {
+                getDiskManager().writePage(pageId, buffer);
             }
         }
-        bufferPool.clear(); // Reset buffers
+
+        bufferPool.clear();
         flag_dirty.clear();
-        pin_count = 0;
-        
+        pin_count.clear();
     }
 
-    public Boolean getFlagDirty(PageId pageId) throws IOException{
-        Boolean r = flag_dirty.get(pageId);
-        if (r == null) {
-            throw new IOException("La pageId n'existe pas");
+
+    /**
+     * Vérifie si une page donnée est marquée comme "dirty".
+     * @param pageId Identifiant de la page
+     * @return True si la page est modifiée, False sinon
+     * @throws IOException Si la page n'est pas présente dans le buffer
+     */
+    public Boolean getFlagDirty(PageId pageId) throws IOException {
+        Boolean isDirty = flag_dirty.get(pageId);
+        if (isDirty == null) {
+            throw new IOException("La pageId spécifiée n'existe pas dans le buffer pool.");
         }
-        return r;
+        return isDirty;
     }
-    public Boolean isLoad(PageId pageId){
-        if (bufferPool.containsKey(pageId)) {
-            return true;
-        }else{
-            return false;
-        }
+
+    /**
+     * Vérifie si une page est chargée dans le buffer pool.
+     * @param pageId Identifiant de la page
+     * @return True si la page est chargée, False sinon
+     */
+    public Boolean isLoad(PageId pageId) {
+        return bufferPool.containsKey(pageId);
+    }
+
+	public DiskManager getDiskManager() {
+		return diskManager;
+	}
+
+    public Map<PageId, Boolean> getFlagDirtyMap() {
+        return flag_dirty;
+    }
+
+    public Map<PageId, ByteBuffer> getBufferPool() {
+        return bufferPool;
+    }
+
+    public Map<PageId, Integer> getPinCount() {
+        return pin_count;
     }
 }
