@@ -205,7 +205,7 @@ public class Relation {
     }
 	public void addDataPage() throws IOException {
 		// On alloue une nouvelle page via le DiskManager
-		PageId newPageId = diskManager.allocPage();
+		PageId newPageId = diskManager.allocPage(tableName);
 
 		// On charge la Header Page dans un buffer
 		ByteBuffer headerBuffer = bufferManager.getPage(headerPageId);
@@ -437,5 +437,24 @@ public class Relation {
 		}
 	}
 
+
+	
+	public List<Record> GetAllRecords() throws IOException {
+        List<Record> allRecords = new ArrayList<>(); // Liste pour stocker tous les records
+
+        // Récupérer la liste des PageId des pages de données
+        List<PageId> dataPages = getDataPages();
+
+        // Parcourir chaque page de données et extraire les records
+        for (PageId pageId : dataPages) {
+            // Récupérer les records d'une page spécifique
+            List<Record> recordsInPage = getRecordsInDataPage(pageId);
+
+            // Ajouter ces records à la liste principale
+            allRecords.addAll(recordsInPage);
+        }
+
+        return allRecords;
+    }
 
 }
