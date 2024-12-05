@@ -1,80 +1,135 @@
+
 import java.io.*;
 import java.nio.*;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DiskManager {
     private  DBConfig config;
     private List<PageId> freePages;
-
+    private Map<String, List<PageId>> pageTableMapping; // Associe les noms de tables aux pages utilisées
 
     public DiskManager(DBConfig config) {
         this.config = config;
         this.freePages = new ArrayList<>();
+        this.pageTableMapping = new HashMap<>(); // Initialiser les associations table-pages
+        // Assurer que le dossier BinData existe
+        File binDataDir = new File(config.getDbpath() + "/BinData");
+        if (!binDataDir.exists()) {
+            binDataDir.mkdirs();
+        }
     }
+    
+    
    public DBConfig getConf() {
 	   return this.config;
    }
 
 
-    public PageId allocPage() throws IOException {
-        // Si on a des pages libres, les utiliser en priorité
-        if (!freePages.isEmpty()) {
-            return freePages.remove(0);
-        }
+ 
+    /**
+     * Alloue une nouvelle page dans le fichier correspondant.
+     * @return PageId représentant la page nouvellement allouée.
+     */
+// Allouer une nouvelle page
+public PageId allocPage(String tableName) throws IOException {
+    PageId pageId;
 
-        // Parcourir les fichiers existants pour trouver de l’espace
-        File dbDir = new File(config.getDbpath());
-        // crée un tableau de page contenant les fichier se terminant par l'extension rsdb
-        File[] fichiers = dbDir.listFiles((dir, name) -> name.endsWith(".rsdb"));
+    if (!freePages.isEmpty()) {
+        return freePages.remove(0);
+    } else {
+        File binDataDir = new File(config.getDbpath() + "/BinData");
+        File[] files = binDataDir.listFiles((dir, name) -> name.endsWith(".rsdb"));
 
-        if (fichiers != null) {
-            for (File fichier : fichiers) {
-                // Si le fichier a encore de l’espace, on y ajoute une page
-                if (fichier.length() + config.getPagesize() <= config.getDm_maxfilesize()) {
-                    try (FileOutputStream fos = new FileOutputStream(fichier, true)) {
-                        fos.write(new byte[config.getPagesize()]);  // Ajoute une page vide
-                        return new PageId(extractFileIndex(fichier.getName()), getNextPageIndex(fichier));
-                    } catch (IOException e) {
-                        System.err.println("Erreur lors de l'écriture dans le fichier " + fichier.getName() + ": " + e.getMessage());
-                        e.printStackTrace();
+        if (files != null) {
+            for (File file : files) {
+                if (file.length() + config.getPagesize() <= config.getDm_maxfilesize()) {
+                    try (FileOutputStream fos = new FileOutputStream(file, true)) {
+                        fos.write(new byte[config.getPagesize()]);
+                        pageId = new PageId(extractFileIndex(file.getName()), getNextPageIndex(file));
+
+                        // Associe la page à la table dans pageTableMapping
+                        pageTableMapping.computeIfAbsent(tableName, k -> new ArrayList<>()).add(pageId);
+
+                        return pageId;
                     }
                 }
             }
         }
 
-        // Si tous les fichiers sont pleins, créer un nouveau fichier
-        int nextFileIndex = getNextFileIndex(fichiers);
-        File newFile = new File(config.getDbpath() + "/F" + nextFileIndex + ".rsdb");
-        try {
-            if (newFile.createNewFile()) {
-                try (FileOutputStream fos = new FileOutputStream(newFile)) {
-                    fos.write(new byte[config.getPagesize()]);  // Ajoute une première page vide
-                    return new PageId(nextFileIndex, 0);  // Première page du nouveau fichier
-                }
+        // Créer un nouveau fichier si aucun fichier existant ne peut contenir la page
+        int nextFileIndex = getNextFileIndex(files);
+        File newFile = new File(config.getDbpath() + "/BinData/F" + nextFileIndex + ".rsdb");
+        if (newFile.createNewFile()) {
+            try (FileOutputStream fos = new FileOutputStream(newFile)) {
+                fos.write(new byte[config.getPagesize()]);
+                pageId = new PageId(nextFileIndex, 0);
+
+                // Associe la page à la table dans pageTableMapping
+                pageTableMapping.computeIfAbsent(tableName, k -> new ArrayList<>()).add(pageId);
+
+                return pageId;
             }
-        } catch (IOException e) {
-            System.err.println("Erreur lors de la création du fichier : " + e.getMessage());
-            e.printStackTrace();
         }
 
-        // 5. En cas d’échec complet, retourner null ou lever une exception personnalisée
-        throw new IOException("Impossible d'allouer une page.");
+        throw new IOException("Impossible d'allouer une nouvelle page.");
     }
 
-    // Méthode pour extraire l'index d'un fichier à partir de son nom
+}
+    /**
+     * Lit une page spécifique dans un buffer.
+     */
+    public void readPage(PageId pageId, ByteBuffer buffer) throws IOException {
+        File file = new File(config.getDbpath() + "/BinData/F" + pageId.getFileIdx() + ".rsdb");
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            raf.seek((long) pageId.getPageIdx() * config.getPagesize());
+            byte[] data = new byte[config.getPagesize()];
+            raf.readFully(data);
+            buffer.put(data);
+        }
+    }
+    
+    /**
+     * Écrit une page dans un fichier spécifique.
+     */
+    public void writePage(PageId pageId, ByteBuffer buffer) throws IOException {
+        // Réinitialiser la position pour commencer à lire depuis le début du buffer
+        buffer.rewind();
+
+        // Si la taille restante est inférieure à la taille d'une page, compléter avec des zéros
+        if (buffer.remaining() < config.getPagesize()) {
+            // Compléter les données manquantes pour éviter le BufferUnderflowException
+            ByteBuffer tempBuffer = ByteBuffer.allocate(config.getPagesize());
+            tempBuffer.put(buffer); // Copier les données existantes
+            tempBuffer.position(0); // Réinitialiser la position
+            buffer = tempBuffer; // Remplacer par le buffer complété
+        }
+
+        // Préparer le fichier pour écrire à la position correcte
+        File file = new File(config.getDbpath() + "/BinData/F" + pageId.getFileIdx() + ".rsdb");
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            long position = (long) pageId.getPageIdx() * config.getPagesize();
+            raf.seek(position);
+
+            // Lire exactement une page depuis le buffer et l'écrire dans le fichier
+            byte[] data = new byte[config.getPagesize()];
+            buffer.get(data); // Lire exactement une page du buffer
+            raf.write(data);
+        }
+    }
+  
+
     private int extractFileIndex(String fileName) {
-        // Extrait l'index du fichier en prenant tout ce qu’il y a entre le F et le point. On le convertir en entier car c'est un caractère
         return Integer.parseInt(fileName.substring(1, fileName.indexOf('.')));
     }
 
-    // Méthode pour calculer l'index de la prochaine (nouvelle) page d'un fichier
     private int getNextPageIndex(File file) {
-        // Le prochain index disponible pour une nouvelle page est le nombre de pages exacte du fichier (car les index commencent à 0).
         return (int) (file.length() / config.getPagesize());
     }
 
-    // Méthode pour déterminer le prochain index de fichier disponible
     private int getNextFileIndex(File[] fichiers) {
         int maxIndex = -1;
         if (fichiers != null) {
@@ -89,103 +144,90 @@ public class DiskManager {
     }
 
 
-
-    // Lire une page
-    public void readPage(PageId pageId, ByteBuffer buff) throws IOException {
-        // Vérification de la capacité du ByteBuffer
-        if (buff.remaining() < config.getPagesize()) {
-            throw new BufferOverflowException(); // Ou lever l'exception le buffer est plein
-        }
-
-        // Utilisation de try-with-resources pour garantir la fermeture du fichier
-        try (RandomAccessFile file = new RandomAccessFile(config.getDbpath() + "/F" + pageId.getFileIdx() + ".rsdb", "r")) {
-            file.seek((long) pageId.getPageIdx() * config.getPagesize());
-            byte[] bytes = new byte[config.getPagesize()];
-            file.readFully(bytes);
-            buff.put(bytes); // Ajoute les octets au ByteBuffer
-        } catch (IOException e) {
-            throw new IOException("Erreur lors de la lecture de la page " + pageId, e);
-        }
-    }
-
-
-    // Écrire une page
-    public void writePage(PageId pageId, ByteBuffer buff) throws IOException {
-        
-        // Vérification de la capacité du ByteBuffer
-    	//if (buff.remaining() < config.getPagesize()) {
-           // throw new BufferOverflowException(); // Lever l'exception si le buffer est plein
-        //}
-
-        try (RandomAccessFile file = new RandomAccessFile(config.getDbpath()+ "/F" + pageId.getFileIdx() + ".rsdb", "rw")) {
-            file.seek((long) pageId.getPageIdx() * config.getPagesize());
-            byte[] bytes = new byte[config.getPagesize()];
-            buff.get(bytes); // Lire les données du ByteBuffer
-
-            // Écrire les octets dans le fichier
-            file.write(bytes);
-        } catch (IOException e) {
-            throw new IOException("Erreur lors de l'écriture de la page " + pageId, e);
-        }
-    }
-
-    // Désallouer une page
     public void deallocPage(PageId pageId) {
-        // Parcourir les fichiers existants pour trouver celui correspondant à pageId
-        File dbDir = new File(config.getDbpath());
+        File dbDir = new File(config.getDbpath() + "/BinData");
         File[] fichiers = dbDir.listFiles((dir, name) -> name.endsWith(".rsdb"));
 
-        boolean pageFound = false; // Indicateur pour savoir si la page a été trouvée
+        boolean pageFound = false; 
 
         if (fichiers != null) {
             for (File fichier : fichiers) {
-                // Vérifie si le fichier correspond à celui du pageId
                 if (extractFileIndex(fichier.getName()) == pageId.getFileIdx()) {
-                    // Ici, on pourrait envisager de marquer la page dans le fichier ou gérer d'autres opérations
-                    // Actuellement, nous ajoutons simplement le PageId à la liste des pages libres
-
-                    freePages.add(pageId); // Ajoute le PageId à la liste des pages libres
-                    pageFound = true; // Marque que la page a été trouvée et désallouée
-
+                    freePages.add(pageId); 
+                    pageFound = true; 
                     System.out.println("Page " + pageId + " désallouée.");
-                    break; // Sort de la boucle après avoir désalloué la page
+                    break; 
                 }
             }
         }
 
-        // Gérer le cas où la page n'a pas été trouvée
         if (!pageFound) {
             System.err.println("Aucune page trouvée pour la désallocation : " + pageId);
         }
     }
 
-    // Sauvegarder l'état du DiskManager
     public void saveState() throws IOException {
-        File dbDir = new File(config.getDbpath()); // Créer une instance File pour le dossier
+        File dbDir = new File(config.getDbpath() + "/BinData");
         if (!dbDir.exists()) {
-            dbDir.mkdirs();  // Créer le dossier s'il est inexistant
+            dbDir.mkdirs();
         }
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/dm.save"))) {
-            out.writeObject(freePages);  // Sérialiser et écrire l'objet freePages dans le fichier
-        } // Flux automatiquement fermé ici grace au try-with-ressources
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(config.getDbpath() + "/BinData/dm.save"))) {
+            out.writeObject(freePages);
+            out.writeObject(pageTableMapping); // Sauvegarder les associations table-pages
+        }
     }
 
 
 
-    // Charger l'état du DiskManager
     @SuppressWarnings("unchecked")
     public void loadState() throws IOException, ClassNotFoundException {
-        // On commence par vérifier si le fichier que l'on veut restaurer est au préalable existant
-        File saveFile = new File(config.getDbpath() + "/dm.save");
+        File saveFile = new File(config.getDbpath() + "/BinData/dm.save");
 
         if (!saveFile.exists()) {
             System.out.println("Aucun état sauvegardé trouvé.");
-            return;  // Si le fichier n'existe pas, sortir de la méthode
+            return;
         }
-        // S'il existe bien, on restaure ses pages libres :
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(config.getDbpath() + "/dm.save"))){
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(config.getDbpath() + "/BinData/dm.save"))){
             freePages = (List<PageId>) in.readObject();
-        } // Flux automatiquement fermé ici grace au try-with-ressources
+            pageTableMapping = (Map<String, List<PageId>>) in.readObject(); // Charger les associations
+        }
+    }
+
+    
+    // Récupérer les pages associées à une table
+    public List<PageId> getPagesForTable(String tableName) {
+        return pageTableMapping.getOrDefault(tableName, Collections.emptyList());
+    }
+
+    /**
+     * Marque une page comme libre en la retirant des associations avec les tables
+     * et en l'ajoutant à la liste des pages libres (freePages).
+     *
+     * @param pageId L'identifiant unique de la page (PageId) à libérer.
+     * Fonctionnement :
+     * 1. Supprime la page spécifiée de toutes les associations dans `pageTableMapping`,
+     *    qui relie les tables aux pages qui leur sont allouées.
+     * 2. Vérifie si la page n'est pas déjà dans `freePages`.
+     *    - Si elle n'y est pas, elle est ajoutée, marquant ainsi qu'elle est libre pour une future réutilisation.
+     *    - Sinon, un message indique que la page est déjà libre.
+     */
+    public void freePage(PageId pageId) {
+        pageTableMapping.values().forEach(pageList -> pageList.remove(pageId));
+
+        if (!freePages.contains(pageId)) {
+            freePages.add(pageId);
+        }
+    }
+
+    // Supprimer une table et ses pages associées
+    public void removeTable(String tableName) {
+        List<PageId> pages = pageTableMapping.remove(tableName);
+        if (pages != null) {
+            for (PageId pageId : pages) {
+                deallocPage(pageId);
+            }
+        }
     }
 }
