@@ -17,7 +17,10 @@ public class RelationTests {
 		relation.addColumn("Name", "VARCHAR(10)");
 		relation.addColumn("Age", "INT");
 
-		testGetDataPages(relation);
+		testGetAllRecords(relation);
+		//testGetDataPages(relation);
+
+
 
 		testWriteRecordToBuffer(relation);
 		testReadFromBuffer(relation);
@@ -25,6 +28,7 @@ public class RelationTests {
 		testGetFreeDataPageId(relation);
 		testWriteRecordToDataPage(relation);
 		testGetRecordsInDataPage(relation);
+		testInsertRecord(relation);
 
 
 	}
@@ -180,7 +184,7 @@ public class RelationTests {
 		}
 
 		// Récupérer la liste des PageIds
-		List<PageId> pages = relation.getDataPages();
+		ArrayList<PageId> pages = relation.getDataPages();
 
 		// Vérifier que la liste contient exactement 3 pages
 		System.out.println(pages.size() );
@@ -197,6 +201,53 @@ public class RelationTests {
 
 		System.out.println("testGetDataPages passed : " + ( (pages.size() == 3)&&(pageNotNull) ) );
 	}
+
+	public static void testInsertRecord(Relation relation) throws IOException {
+		RecordId recordId = new RecordId();
+		Record record = new Record();
+		record.addValue(1); // ID
+		record.addValue("Alice"); // Name
+		record.addValue(25); // Age
+		recordId = relation.insertRecord(record);
+		assert (recordId != null) : "Failed to insert record";
+		assert recordId.getSlotIdx() > -1 : "Wrong Slot index in RecordId!";
+		System.out.println("testInsertRecord passed : " + ((recordId.getSlotIdx()>-1)&&(recordId!=null)));
+	}
+
+	public static void testGetAllRecords(Relation relation) throws IOException {
+		// Créer des records à écrire
+		Record record1 = new Record();
+		record1.addValue(1); // ID
+		record1.addValue("Alice"); // Name
+		record1.addValue(25); // Age
+
+		Record record2 = new Record();
+		record2.addValue(2); // ID
+		record2.addValue("Bob"); // Name
+		record2.addValue(30); // Age
+
+		// Ecriture des reccord dans les data pages.
+		PageId page1 = new PageId(1,0);
+		PageId page2 = new PageId(1,1);
+
+		RecordId recordId1 = relation.writeRecordToDataPage(record1, page1);
+		RecordId recordId2 = relation.writeRecordToDataPage(record2, page2);
+
+
+		// Récupération des records
+		ArrayList<Record> records = relation.getAllRecords();
+
+		for (Record record : records) {
+			System.out.println("Record : " + record.getValues());
+			assert record == null : "Le record est nul";
+		}
+		System.out.println("testGetAllRecords passed : "+(records.size() == 2));
+
+		assert records.size() == 2 : "Le nombre de records est incorrect !";
+	}
+
+
+
 
 
 

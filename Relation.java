@@ -286,8 +286,8 @@ public class Relation {
 		return records;
 	}
 
-	public List<PageId> getDataPages() throws IOException {
-		List<PageId> pages = new ArrayList<>();
+	public ArrayList<PageId> getDataPages() throws IOException {
+		ArrayList<PageId> pages = new ArrayList<>();
 
 		// Charger la Header Page dans un buffer
 		ByteBuffer headerBuffer = bufferManager.getPage(headerPageId);
@@ -393,6 +393,40 @@ public class Relation {
 			bufferManager.freePage(headerPageId, true);
 		}
 	}
+
+	public ArrayList<Record> getAllRecords() throws IOException {
+		ArrayList<Record> records = new ArrayList<>();
+		ArrayList<PageId> dataPages = getDataPages(); // Retrieve all data pages
+
+		for (PageId pageId : dataPages) {
+			ByteBuffer pageBuffer = bufferManager.getPage(pageId);
+
+			try {
+				// Read all records in the page
+				int slotCount = pageBuffer.getInt(pageBuffer.capacity() - 8); // Slot count
+				for (int i = 0; i < slotCount; i++) {
+					int slotOffset = pageBuffer.capacity() - 8 - (i + 1) * 8;
+					int recordOffset = pageBuffer.getInt(slotOffset); // Offset of the record
+					int recordSize = pageBuffer.getInt(slotOffset + 4); // Size of the record
+
+					if (recordOffset != -1) { // Check if the record exists
+						byte[] recordData = new byte[recordSize];
+						pageBuffer.position(recordOffset);
+						pageBuffer.get(recordData);
+
+						// Deserialize record
+						Record record = Record.extractRecord(recordData, columnTypes);
+						records.add(record);
+					}
+				}
+			} finally {
+				bufferManager.freePage(pageId, false); // Release the page
+			}
+		}
+
+		return records;
+	}
+
 
 
 
