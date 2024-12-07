@@ -1,4 +1,3 @@
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -15,8 +14,7 @@ public class Relation {
 	private BufferManager bufferManager;
 	private List<Record> records;
 
-
-    public Relation(String name) {
+	public Relation(String name) {
 		if (name == null || name.trim().isEmpty()) {
 			throw new IllegalArgumentException("Relation name cannot be null or empty.");
 		}
@@ -36,6 +34,7 @@ public class Relation {
 		this.headerPageId = headerPageId;
 		this.diskManager = dm;
 		this.bufferManager = bm;
+		
 	}
 
 	public void addColumn(String name, String type) {
@@ -158,54 +157,34 @@ public class Relation {
 		return totalSize;
 	}
 
+	public int getColumnNumber() {
+		return columnNames.size();
+	}
 
-    public void saveHeaderPageId(ObjectOutputStream oos) throws IOException {
-        if (headerPageId != null) {
-            oos.writeInt(headerPageId.getFileIdx());
-            oos.writeInt(headerPageId.getPageIdx());
-        } else {
-            oos.writeInt(-1); // Special marker indicating no header page
-        }
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void loadHeaderPageId(ObjectInputStream ois) throws IOException {
-        int fileIdx = ois.readInt();
-        if (fileIdx != -1) {
-            int pageIdx = ois.readInt();
-            headerPageId = new PageId(fileIdx, pageIdx);
-        }
-    }
-
-    public int getColumnNumber() {
-        return columnNames.size();
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public List<String> getColumnNames() {
-        return columnNames;
-    }
+	public List<String> getColumnNames() {
+		return columnNames;
+	}
 
     public List<Record> getRecords() {
         return records;
     }
 
+	
     public void setHeaderPageId(PageId headerPageId) {
         this.headerPageId = headerPageId;
-    }
-
-    public PageId getHeaderPageId() {
-        return headerPageId;
     }
 
     public void addRecord(Record record) {
         records.add(record);
     }
+
 	public void addDataPage() throws IOException {
 		// On alloue une nouvelle page via le DiskManager
-		PageId newPageId = diskManager.allocPage(tableName);
+		PageId newPageId = diskManager.allocPage();
 
 		// On charge la Header Page dans un buffer
 		ByteBuffer headerBuffer = bufferManager.getPage(headerPageId);
@@ -259,12 +238,15 @@ public class Relation {
 		return null;
 	}
 
+	public PageId getHeaderPageId() {
+		return headerPageId;
+	}
 
 	public BufferManager getBufferManager() {
 		return bufferManager;
 	}
 
-	public RecordID writeRecordToDataPage(Record record, PageId pageId) throws IOException {
+	public RecordId writeRecordToDataPage(Record record, PageId pageId) throws IOException {
 		// Charger la page de données dans un buffer
 		ByteBuffer dataBuffer = bufferManager.getPage(pageId);
 	
@@ -296,7 +278,7 @@ public class Relation {
 		bufferManager.freePage(pageId, true);
 	
 		// Retourner le RecordId correspondant
-		return new RecordID(pageId, slotCount); // slotCount est l'index du nouveau record
+		return new RecordId(pageId, slotCount); // slotCount est l'index du nouveau record
 	}
 	
 	public List<Record> getRecordsInDataPage(PageId pageId) throws IOException {
@@ -329,8 +311,8 @@ public class Relation {
 		return records;
 	}
 
-	public List<PageId> getDataPages() throws IOException {
-		List<PageId> pages = new ArrayList<>();
+	public ArrayList<PageId> getDataPages() throws IOException {
+		ArrayList<PageId> pages = new ArrayList<>();
 
 		// Charger la Header Page dans un buffer
 		ByteBuffer headerBuffer = bufferManager.getPage(headerPageId);
@@ -359,7 +341,7 @@ public class Relation {
 		return pages;
 	}
 
-	public RecordID insertRecord(Record record) throws IOException {
+	public RecordId insertRecord(Record record) throws IOException {
 		// Trouver une page ayant suffisamment d'espace libre
 		int recordSize = record.toString().getBytes().length; // Approximation de la taille du record
 		PageId freePageId = getFreeDataPageId(recordSize);
@@ -381,7 +363,7 @@ public class Relation {
 			updateFreeSpace(freePageId, -recordSize);
 
 			// 6. Retourner le RecordId correspondant
-			return new RecordID(freePageId, slotIdx);
+			return new RecordId(freePageId, slotIdx);
 		} finally {
 			// Libérer la page après l'insertion
 			bufferManager.freePage(freePageId, true);
@@ -437,24 +419,58 @@ public class Relation {
 		}
 	}
 
+	public ArrayList<Record> getAllRecords() throws IOException {
+		ArrayList<Record> records = new ArrayList<>();
+		ArrayList<PageId> dataPages = getDataPages(); // Retrieve all data pages
 
-	
-	public List<Record> GetAllRecords() throws IOException {
-        List<Record> allRecords = new ArrayList<>(); // Liste pour stocker tous les records
+		for (PageId pageId : dataPages) {
+			ByteBuffer pageBuffer = bufferManager.getPage(pageId);
 
-        // Récupérer la liste des PageId des pages de données
-        List<PageId> dataPages = getDataPages();
+			try {
+				// Read all records in the page
+				int slotCount = pageBuffer.getInt(pageBuffer.capacity() - 8); // Slot count
+				for (int i = 0; i < slotCount; i++) {
+					int slotOffset = pageBuffer.capacity() - 8 - (i + 1) * 8;
+					int recordOffset = pageBuffer.getInt(slotOffset); // Offset of the record
+					int recordSize = pageBuffer.getInt(slotOffset + 4); // Size of the record
 
-        // Parcourir chaque page de données et extraire les records
-        for (PageId pageId : dataPages) {
-            // Récupérer les records d'une page spécifique
-            List<Record> recordsInPage = getRecordsInDataPage(pageId);
+					if (recordOffset != -1) { // Check if the record exists
+						byte[] recordData = new byte[recordSize];
+						pageBuffer.position(recordOffset);
+						pageBuffer.get(recordData);
 
-            // Ajouter ces records à la liste principale
-            allRecords.addAll(recordsInPage);
+						// Deserialize record
+						Record record = Record.extractRecord(recordData, columnTypes);
+						records.add(record);
+					}
+				}
+			} finally {
+				bufferManager.freePage(pageId, false); // Release the page
+			}
+		}
+
+		return records;
+	}
+
+    public void saveHeaderPageId(ObjectOutputStream oos) throws IOException {
+        if (headerPageId != null) {
+            oos.writeInt(headerPageId.getFileIdx());
+            oos.writeInt(headerPageId.getPageIdx());
+        } else {
+            oos.writeInt(-1); // Special marker indicating no header page
         }
-
-        return allRecords;
     }
+
+    public void loadHeaderPageId(ObjectInputStream ois) throws IOException {
+        int fileIdx = ois.readInt();
+        if (fileIdx != -1) {
+            int pageIdx = ois.readInt();
+            headerPageId = new PageId(fileIdx, pageIdx);
+        }
+    }
+
+
+
+
 
 }
