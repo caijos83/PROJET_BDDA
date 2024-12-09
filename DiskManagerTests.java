@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 public class DiskManagerTests {
 
     public static void main(String[] args) throws IOException, ClassNotFoundException  {
-        DBConfig config = new DBConfig("./DB", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
+        DBConfig config = new DBConfig("./Data", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
         DiskManager diskManager = new DiskManager(config);
 
         testAllocPage(diskManager);
