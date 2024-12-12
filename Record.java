@@ -31,7 +31,7 @@ public class Record {
     }
 
     public void setValues(List<Object> values) {
-        this.values = new ArrayList<>(values); // Ensure a new copy is set
+        this.values = new ArrayList<>(values);
     }
 
     public int size() {
