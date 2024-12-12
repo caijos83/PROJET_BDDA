@@ -47,6 +47,8 @@ public class SGBD {
                 dbManager.listTablesInCurrentDatabase();
             } else if (command.equals("DROP TABLES")) {
                 dbManager.dropAllTables(diskManager);
+            } else if (command.startsWith("INSERT INTO")) {
+                insertIntoCommand(command);
             } else if (command.equals("DROP DATABASES")) {
                 dbManager.dropAllDatabases(diskManager);
             } else if (command.equals("LIST DATABASES")) {
@@ -104,6 +106,11 @@ public class SGBD {
                     throw new IllegalArgumentException("Column name or type cannot be empty: " + col);
                 }
 
+                // Validation du type de colonne
+                if (!colType.matches("INT|REAL|CHAR\\(\\d+\\)|VARCHAR\\(\\d+\\)")) {
+                    throw new IllegalArgumentException("Invalid column type: " + colType);
+                }
+
                 columnNames.add(colName);
                 columnTypes.add(colType);
             }
@@ -115,6 +122,68 @@ public class SGBD {
             throw new IOException("Error while creating table: " + e.getMessage(), e);
         }
     }
+
+
+    private void insertIntoCommand(String command) throws IOException {
+        try {
+            // Extraction du nom de la table et des valeurs
+            String[] parts = command.split(" ");
+            String tableName = parts[2];
+            int startIndex = command.indexOf("(");
+            int endIndex = command.length()-1;
+
+
+            if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) {
+                throw new IllegalArgumentException("Invalid INSERT INTO command: missing or malformed parentheses.");
+            }
+
+            String[] values = command.substring(startIndex + 1, endIndex).split(",");
+            List<Object> recordValues = new ArrayList<>();
+            for (String value : values) {
+                value = value.trim();
+                if (value.matches("^\\d+$")) { // Entier
+                    recordValues.add(Integer.parseInt(value));
+                } else if (value.matches("^\\d+\\.\\d+$")) { // Réel
+                    recordValues.add(Float.parseFloat(value));
+                } else { // Chaîne
+                    recordValues.add(value.replaceAll("^\"|\"$", ""));
+                }
+            }
+
+            // Récupérer la table et valider les types
+            Relation table = dbManager.getTableFromCurrentDatabase(tableName);
+            if (table == null) {
+                throw new IllegalArgumentException("Table " + tableName + " does not exist.");
+            }
+
+            List<String> columnTypes = table.getColumnTypes();
+            if (columnTypes.size() != recordValues.size()) {
+                throw new IllegalArgumentException("Column count mismatch: expected " + columnTypes.size() + " but got " + recordValues.size());
+            }
+
+            // Validation des types
+            for (int i = 0; i < columnTypes.size(); i++) {
+                String type = columnTypes.get(i);
+                Object value = recordValues.get(i);
+
+                if (type.equals("INT") && !(value instanceof Integer)) {
+                    throw new IllegalArgumentException("Column " + i + " expects INT but got " + value);
+                } else if (type.equals("REAL") && !(value instanceof Float)) {
+                    throw new IllegalArgumentException("Column " + i + " expects REAL but got " + value);
+                } else if ((type.startsWith("CHAR") || type.startsWith("VARCHAR")) && !(value instanceof String)) {
+                    throw new IllegalArgumentException("Column " + i + " expects CHAR/VARCHAR but got " + value);
+                }
+            }
+
+            // Créer un Record et insérer dans la table
+            Record record = new Record(recordValues);
+            RecordId recordId = table.insertRecord(record);
+            System.out.println("Record inserted at " + recordId);
+        } catch (Exception e) {
+            throw new IOException("Error while inserting record: " + e.getMessage(), e);
+        }
+    }
+
 
 
     // Quitter le SGBD proprement

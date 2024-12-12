@@ -53,9 +53,8 @@ public class Relation {
     }
 
     public int writeRecordToBuffer(Record record, ByteBuffer buff, int pos) {
-        if (record.size() != columnTypes.size()) {
-            throw new IllegalArgumentException("Record size does not match the number of columns.");
-        }
+        validateRecord(record);  // Assurez-vous que les types sont validés avant d'écrire
+
         if (pos < 0 || pos >= buff.capacity()) {
             throw new IllegalArgumentException("Invalid buffer position: " + pos);
         }
@@ -66,44 +65,38 @@ public class Relation {
             for (int i = 0; i < record.size(); i++) {
                 Object value = record.getValue(i);
                 String type = columnTypes.get(i);
+
                 if (type.equals("INT")) {
                     if (!(value instanceof Integer)) {
-                        throw new IllegalArgumentException(
-                                "Expected INT but found " + value.getClass().getSimpleName());
+                        throw new IllegalArgumentException("Expected INT but found " + value.getClass().getSimpleName());
                     }
                     buff.putInt((Integer) value);
                     totalSize += Integer.BYTES;
                 } else if (type.equals("REAL")) {
                     if (!(value instanceof Float)) {
-                        throw new IllegalArgumentException(
-                                "Expected REAL but found " + value.getClass().getSimpleName());
+                        throw new IllegalArgumentException("Expected REAL but found " + value.getClass().getSimpleName());
                     }
                     buff.putFloat((Float) value);
                     totalSize += Float.BYTES;
                 } else if (type.startsWith("CHAR")) {
-                    int length = Integer.parseInt(type.substring(5, type.length() - 1)); // Extract T
+                    int length = Integer.parseInt(type.substring(5, type.length() - 1));
                     if (!(value instanceof String)) {
-                        throw new IllegalArgumentException(
-                                "Expected CHAR but found " + value.getClass().getSimpleName());
+                        throw new IllegalArgumentException("Expected CHAR but found " + value.getClass().getSimpleName());
                     }
                     String strValue = (String) value;
-                    if (strValue.length() > length) {
-                        throw new IllegalArgumentException("CHAR value exceeds specified length: " + length);
-                    }
                     for (char c : strValue.toCharArray()) {
                         buff.put((byte) c);
                     }
                     for (int j = strValue.length(); j < length; j++) {
-                        buff.put((byte) 0); // Null character padding
+                        buff.put((byte) 0); // Padding with null characters
                     }
                     totalSize += length;
                 } else if (type.startsWith("VARCHAR")) {
                     if (!(value instanceof String)) {
-                        throw new IllegalArgumentException(
-                                "Expected VARCHAR but found " + value.getClass().getSimpleName());
+                        throw new IllegalArgumentException("Expected VARCHAR but found " + value.getClass().getSimpleName());
                     }
                     String strValue = (String) value;
-                    buff.putInt(strValue.length()); // Length of the string
+                    buff.putInt(strValue.length());  // Write the length of the string first
                     for (char c : strValue.toCharArray()) {
                         buff.put((byte) c);
                     }
@@ -116,6 +109,7 @@ public class Relation {
 
         return totalSize;
     }
+
 
     public int readFromBuffer(Record record, ByteBuffer buff, int pos) {
         if (record == null) {
@@ -224,10 +218,14 @@ public class Relation {
         // Le compteur de pages (N) augmente
         headerBuffer.putInt(0, numPages + 1);
 
-        // On marque la Header Page comme dirty
+        ByteBuffer dataBuffer = bufferManager.getPage(newPageId);
+        dataBuffer.putInt(dataBuffer.capacity() - 8, 0); // Free space starts at 0
+        dataBuffer.putInt(dataBuffer.capacity() - 4, 0); // No slots initially
+
+        bufferManager.freePage(newPageId, true);
         bufferManager.freePage(headerPageId, true);
 
-        System.out.println("Nouvelle page ajoutée : " + newPageId);
+        System.out.println("New page added: " + newPageId);
     }
 
     public PageId getFreeDataPageId(int sizeRecord) throws IOException {
@@ -361,7 +359,8 @@ public class Relation {
 
     public RecordId insertRecord(Record record) throws IOException {
         // Trouver une page ayant suffisamment d'espace libre
-        int recordSize = record.toString().getBytes().length; // Approximation de la taille du record
+        //int recordSize = record.toString().getBytes().length; // Approximation de la taille du record
+        int recordSize = writeRecordToBuffer(record, ByteBuffer.allocate(0), 0); //Calcul de la taille precise du record
         PageId freePageId = getFreeDataPageId(recordSize);
 
         //Si aucune page n'a assez d'espace, allouer une nouvelle page
@@ -369,6 +368,7 @@ public class Relation {
             addDataPage(); // Ajout d'une nouvelle page
             freePageId = getFreeDataPageId(recordSize);
         }
+
 
         //Charger la page dans un buffer
         ByteBuffer pageBuffer = bufferManager.getPage(freePageId);
@@ -387,6 +387,45 @@ public class Relation {
             bufferManager.freePage(freePageId, true);
         }
     }
+
+
+    private void validateRecord(Record record) {
+        if (record.size() != columnTypes.size()) {
+            throw new IllegalArgumentException("Record size does not match the number of columns.");
+        }
+        for (int i = 0; i < record.size(); i++) {
+            Object value = record.getValue(i);
+            String type = columnTypes.get(i);
+
+            // Vérification du type INT
+            if (type.equals("INT") && !(value instanceof Integer)) {
+                throw new IllegalArgumentException("Column " + columnNames.get(i) + " expects INT but got " + value.getClass().getSimpleName());
+            }
+            // Vérification du type REAL
+            else if (type.equals("REAL") && !(value instanceof Float)) {
+                throw new IllegalArgumentException("Column " + columnNames.get(i) + " expects REAL but got " + value.getClass().getSimpleName());
+            }
+            // Vérification du type CHAR
+            else if (type.startsWith("CHAR")) {
+                if (!(value instanceof String)) {
+                    throw new IllegalArgumentException("Column " + columnNames.get(i) + " expects CHAR but got " + value.getClass().getSimpleName());
+                }
+                int maxLength = Integer.parseInt(type.substring(5, type.length() - 1));
+                if (((String) value).length() > maxLength) {
+                    throw new IllegalArgumentException("Value for column " + columnNames.get(i) + " exceeds max length " + maxLength);
+                }
+            }
+            // Vérification du type VARCHAR
+            else if (type.startsWith("VARCHAR")) {
+                if (!(value instanceof String)) {
+                    throw new IllegalArgumentException("Column " + columnNames.get(i) + " expects VARCHAR but got " + value.getClass().getSimpleName());
+                }
+            } else {
+                throw new IllegalArgumentException("Unsupported column type: " + type);
+            }
+        }
+    }
+
 
     private int insertIntoPage(ByteBuffer pageBuffer, Record record) {
         // Récupérer l'emplacement de l'espace libre
@@ -457,4 +496,7 @@ public class Relation {
         return allRecords;
     }
 
+    public List<String> getColumnTypes() {
+        return columnTypes;
+    }
 }

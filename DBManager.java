@@ -15,7 +15,7 @@ public class DBManager {
     }
 
     public void createTable(String tableName, List<String> columnNames, List<String> columnTypes, DiskManager diskManager) throws IOException {
-        if (currentDatabase == null) {
+        if (currentDatabase == null){
             System.out.println("No active database. Use SET DATABASE first.");
             return;
         }
@@ -109,6 +109,8 @@ public class DBManager {
         }
     }
 
+
+
     // Définir la base de données active
     public void setCurrentDatabase(String dbName) {
         if (databases.containsKey(dbName)) {
@@ -131,6 +133,27 @@ public class DBManager {
             System.out.println("Table " + table.getName() + " added to " + currentDatabase + ".");
         }
     }
+
+    public RecordId insertRecordIntoTable(String tableName, Record record) throws IOException {
+        // Vérifier si une base de données est active
+        if (currentDatabase == null) {
+            System.out.println("No active database. Use SET DATABASE to select one.");
+            return null;
+        }
+
+        // Récupérer la table correspondante
+        Map<String, Relation> tables = databases.get(currentDatabase);
+        Relation relation = tables.get(tableName);
+
+        if (relation == null) {
+            System.out.println("Table " + tableName + " does not exist in the current database.");
+            return null;
+        }
+
+        // Insérer le record dans la table
+        return relation.insertRecord(record);
+    }
+
 
     public String getCurrentDatabaseName() {
         return currentDatabase;
