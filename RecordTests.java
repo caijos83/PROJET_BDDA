@@ -1,4 +1,6 @@
-package miniSGBDR;
+package tests;
+
+import miniSGBDR.Record;
 
 import java.util.Arrays;
 
@@ -8,10 +10,12 @@ public class RecordTests {
         testGetValue();
         testSetValues();
         testClearValues();
+
+        System.out.println("All RecordTests passed successfully!");
     }
 
     public static void testAddValue() {
-        Record record = new Record();
+        miniSGBDR.Record record = new miniSGBDR.Record();
         record.addValue(1);
         record.addValue("Alice");
         System.out.println("testAddValue: " + record.getValues());
@@ -19,7 +23,7 @@ public class RecordTests {
     }
 
     public static void testGetValue() {
-        Record record = new Record();
+        miniSGBDR.Record record = new miniSGBDR.Record();
         record.addValue(1);
         record.addValue("Alice");
         Object value = record.getValue(1);
@@ -28,14 +32,14 @@ public class RecordTests {
     }
 
     public static void testSetValues() {
-        Record record = new Record();
+        miniSGBDR.Record record = new miniSGBDR.Record();
         record.setValues(Arrays.asList(2, "Bob", 25));
         System.out.println("testSetValues: " + record.getValues());
         assert record.getValues().equals(Arrays.asList(2, "Bob", 25)) : "Failed to set values!";
     }
 
     public static void testClearValues() {
-        Record record = new Record();
+        miniSGBDR.Record record = new Record();
         record.addValue(1);
         record.addValue("Alice");
         record.remove();

@@ -1,4 +1,6 @@
-package miniSGBDR;
+package tests;
+
+import miniSGBDR.DBConfig;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,9 +12,10 @@ public class DBConfigTests {
         testConstructor();
         testLoadDBConfig();
         testGetters();
+
+        System.out.println("All DBConfigTests passed successfully!");
     }
 
-    // Test the constructor
     public static void testConstructor() {
         DBConfig config = new DBConfig(".\\Data", 4096, 1048576, DBConfig.BMpolicy.LRU, 5);
 
@@ -25,11 +28,9 @@ public class DBConfigTests {
         System.out.println("Constructor test passed.");
     }
 
-    // Test loading configuration from a file
     public static void testLoadDBConfig() throws IOException {
         String testFilePath = "test_dbconfig.txt";
 
-        // Create a sample configuration file
         try (PrintWriter writer = new PrintWriter(new FileWriter(testFilePath))) {
             writer.println("dbpath = data/db");
             writer.println("pagesize = 4096");
@@ -38,10 +39,8 @@ public class DBConfigTests {
             writer.println("bm_buffercount = 10");
         }
 
-        // Load configuration from the file
         DBConfig config = DBConfig.loadDBConfig(testFilePath);
 
-        // Assertions to check loaded values
         assert config.getDbpath().equals("data/db") : "dbpath mismatch in file loading!";
         assert config.getPagesize() == 4096 : "pagesize mismatch in file loading!";
         assert config.getDm_maxfilesize() == 1048576 : "dm_maxfilesize mismatch in file loading!";
@@ -51,7 +50,6 @@ public class DBConfigTests {
         System.out.println("File loading test passed.");
     }
 
-    // Test getters
     public static void testGetters() {
         DBConfig config = new DBConfig("data/db", 2048, 2097152, DBConfig.BMpolicy.MRU, 8);
 
